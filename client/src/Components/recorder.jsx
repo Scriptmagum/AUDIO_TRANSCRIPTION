@@ -84,7 +84,7 @@ function Recorder() {
     formData.append('file', audioBlob, 'enregistrement.webm');
 
     try {
-      const response = await fetch('http://localhost:3001/api/meeting/audio', {
+      const response = await fetch('http://127.0.0.1:3001/api/meeting/audio', {
         method: 'POST',
         body: formData,
       });

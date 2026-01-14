@@ -1,10 +1,18 @@
 import multer from "multer";
 import path from "path";
+import fs from "fs"; // <--- 1. On ajoute ça
 
 // Configuration du stockage
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, "uploads/");
+    const uploadPath = "uploads/"; // Le dossier cible
+
+    // 2. On vérifie si le dossier existe, sinon on le crée
+    if (!fs.existsSync(uploadPath)) {
+      fs.mkdirSync(uploadPath, { recursive: true });
+    }
+
+    cb(null, uploadPath);
   },
   filename: (req, file, cb) => {
     const ext = path.extname(file.originalname);
@@ -12,7 +20,7 @@ const storage = multer.diskStorage({
   }
 });
 
-// Filtrage basique (audio uniquement)
+// ... le reste ne change pas ...
 const fileFilter = (req, file, cb) => {
   if (file.mimetype.startsWith("audio/")) {
     cb(null, true);
@@ -25,6 +33,6 @@ export const upload = multer({
   storage,
   fileFilter,
   limits: {
-    fileSize: 50 * 1024 * 1024 // 50 MB
+    fileSize: 50 * 1024 * 1024 
   }
 });
