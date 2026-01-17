@@ -1,0 +1,8 @@
+{
+  "ignore": [
+    "uploads/*",
+    "*.json",
+    "*.txt",
+    ".env"
+  ]
+}
