@@ -1,0 +1,21 @@
+SPEAKER_01: Bonjour et bienvenue dans cette réunion concernant le projet web.
+SPEAKER_01: Je suis Corentin Lucas, responsable informatique sur ce projet.
+SPEAKER_00: Et je suis Florian Varin, je suis sous-directeur dans le développement et dans le marketing.
+SPEAKER_00: Je suis là depuis trois ans et je suis là bienvenue à tout le monde.
+SPEAKER_01: Merci.
+SPEAKER_01: Au niveau des fonctionnalités ajoutées,
+SPEAKER_01: Nous en tout cas, ce qu'on a déjà fait, c'est un website web qui arrive à une web app en gros qui fait ce qu'il faut faire.
+SPEAKER_01: Est-ce que ça vous convient, on est 28 janvier ?
+SPEAKER_01: Est-ce que ça me convient au niveau Deadline, on est dans les temps ?
+SPEAKER_00: Alors, je pense que totalement dans les temps, je rappelle que la présentation de ce qu'on va faire se fera en avril, c'est-à-dire mi-avril.
+SPEAKER_00: Nous sommes enfin en janvier, nous avons déjà presque fini le projet.
+SPEAKER_00: En tout cas, ce qu'on nous a demandé de faire à la base.
+SPEAKER_00: Je pense que ça nous laissera vraiment le temps de travailler sur des intégrations annexes comme sur Teams, par exemple.
+SPEAKER_01: D'accord.
+SPEAKER_01: Oui, botte teams, botte discord.
+SPEAKER_01: Je pense que je préviens les équipes, il faudrait que je m'y fasse penser à ça, préviens les équipes des nouvelles fonctionnalités à ajouter.
+SPEAKER_01: Et voilà.
+SPEAKER_01: Merci beaucoup, on se donne rendez-vous dans deux semaines, c'est ça ?
+SPEAKER_00: C'est ça, dans deux semaines.
+SPEAKER_00: On en reparle, ton nain qui a fait.
+SPEAKER_01: Super, merci.

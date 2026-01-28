@@ -68,7 +68,7 @@ export const summarizeMeeting = async (req, res) => {
     const dialogueContent = fs.readFileSync(dialoguePath, "utf-8");
 
     const systemPrompt = `
-    Tu es un assistant secrétaire expert. 
+    Tu es un assistant secrétaire expert. Si un speaker dit son nom, apprend le et garde le pour le compte rendu.
     Résume cette réunion de façon structurée (Markdown) :
     - Synthèse globale (3 phrases)
     - Points clés (Bullet points)
@@ -90,7 +90,7 @@ export const summarizeMeeting = async (req, res) => {
     res.json({ summary });
 
   } catch (error) {
-    console.error("❌ Erreur Résumé :", error);
+    console.error("Erreur Résumé :", error);
     res.status(500).json({ error: error.message });
   }
 };

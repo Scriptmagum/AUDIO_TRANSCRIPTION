@@ -1,0 +1,5 @@
+SPEAKER_00: C'est un test, une réunion test pour savoir s'il faut que j'utilise très l'eau pour la gestion du projet.
+SPEAKER_00: Je suis Corentin Lucas et je suis en charge de la gestion du projet.
+SPEAKER_00: Il faut que je prévienne mon équipe pour le 31 janvier au plus tard à 19h.
+SPEAKER_00: J'espère que ça vous a plu.
+SPEAKER_00: Au revoir.
