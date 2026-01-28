@@ -2,66 +2,95 @@ import fs from "fs";
 import { exec } from "child_process";
 import util from "util";
 import path from "path";
+import OpenAI from "openai";
+
 
 const execPromise = util.promisify(exec);
 
-export const processMeeting = async (req, res) => {
+export const transcribeAudio = async (req, res) => {
   try {
     const filePath = req.file.path;
-
     const hfToken = process.env.HF_TOKEN;
-    if (!hfToken) {
-        throw new Error("La clé HF_TOKEN est introuvable dans le fichier .env !");
-    }
 
-    const whisperXPath = "/home/dalecooper/.local/bin/whisperx"
-
-    console.log("Transcription en cours...");
-
-    const command = `${whisperXPath} "${filePath}" --model small --language fr --diarize --hf_token ${hfToken} --device cuda --compute_type float16 --output_dir "uploads" --output_format json`;
+    const whisperxPath = "/home/dalecooper/.local/bin/whisperx";
+    const command = `${whisperxPath} "${filePath}" --model small --language fr --diarize --hf_token ${hfToken} --device cuda --compute_type int8 --output_dir "uploads" --output_format json`;
 
     await execPromise(command);
 
-    let jsonPath = filePath + ".json"; 
+    let jsonPath = filePath + ".json";
     if (!fs.existsSync(jsonPath)) {
         const dir = path.dirname(filePath);
         const nameWithoutExt = path.parse(filePath).name;
         jsonPath = path.join(dir, nameWithoutExt + ".json");
     }
-    if (!fs.existsSync(jsonPath)){
-      throw new Error("Fichier json pas généré");
-    }   
 
     const data = JSON.parse(fs.readFileSync(jsonPath, "utf-8"));
 
-    let dialog = "";
-    data.segments.forEach(segment=>{
-      let speakerName = segment.speaker || "Inconnu";
-      
-      const minutes = Math.floor(segment.start / 60);
-      const seconds = Math.floor(segment.start % 60).toString().padStart(2, '0');
-      const timeStamp = `${minutes}:${seconds}`;
+    let dialogueText = "";
+    data.segments.forEach(segment => {
+        let speaker = segment.speaker || "Inconnu";
+        dialogueText += `${speaker}: ${segment.text.trim()}\n`;
+    });
 
-      dialog += `[${timeStamp}] ${speakerName} : ${segment.text.trim()}\n`;
-    })
-    
-    console.log("\n" + "=".repeat(60));
-    console.log("RÉSULTAT DE LA TRANSCRIPTION");
-    console.log("=".repeat(60));
-    console.log(dialog);
-    console.log("=".repeat(60));
-    console.log("Fin de la transcription.\n");
+    const dialoguePath = filePath + "_DIALOGUE.txt";
+    fs.writeFileSync(dialoguePath, dialogueText);
+    console.log("Dialogue sauvegardé :", dialoguePath);
 
     res.json({
-        message: "Traitement terminé",
-        transcription: dialog,
-        raw_data: data
+      message: "Transcription terminée",
+      transcription: dialogueText,
+      filename: filePath 
     });
+
   } catch (error) {
-    console.error("Erreur lors de la transcription : ", error);
-    res.status(400).json({
-      error: "Erreur lors de la transcription",
-      details: error.message
+    console.error("Erreur Transcription :", error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+
+export const summarizeMeeting = async (req, res) => {
+  try {
+    const openai = new OpenAI({apiKey: process.env.OPENAI_API_KEY}); 
+    const { filename } = req.body; 
+
+    if (!filename) {
+        return res.status(400).json({ error: "Nom de fichier manquant." });
+    }
+
+    const dialoguePath = filename + "_DIALOGUE.txt";
+
+    if (!fs.existsSync(dialoguePath)) {
+        return res.status(404).json({ error: "Fichier de dialogue introuvable. Avez-vous fait la transcription ?" });
+    }
+
+    console.log("[2/2] Lecture du fichier et envoi à GPT...");
+    const dialogueContent = fs.readFileSync(dialoguePath, "utf-8");
+
+    const systemPrompt = `
+    Tu es un assistant secrétaire expert. 
+    Résume cette réunion de façon structurée (Markdown) :
+    - Synthèse globale (3 phrases)
+    - Points clés (Bullet points)
+    - Actions à faire (To-Do avec noms)
+    `;
+
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: dialogueContent },
+      ],
     });
+
+    const summary = completion.choices[0].message.content;
+
+    fs.writeFileSync(filename + "_RESUME.md", summary);
+
+    res.json({ summary });
+
+  } catch (error) {
+    console.error("❌ Erreur Résumé :", error);
+    res.status(500).json({ error: error.message });
   }
 };
