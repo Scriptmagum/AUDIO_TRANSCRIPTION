@@ -1,5 +1,7 @@
   import React, { useRef, useState } from 'react'
   import { FaCircleStop, FaMicrophone, FaPaperPlane } from 'react-icons/fa6';
+  import TranscriptionView from './TranscriptionView';
+  import SummaryView from './SummaryView';
 
   function Recorder() {
     const [isRecording, setIsRecording] = useState(false);
@@ -182,43 +184,30 @@
             </div>
         )}
 
-        {/* RÉSULTATS (TRANSCRIPTION + RÉSUMÉ) */}
-        <div className="w-full max-w-4xl px-4 flex flex-col gap-6 mt-8">
+        {/* RÉSULTATS */}
+        <div className="w-full flex flex-col gap-8 mt-8 pb-20">
             
-            {/* 1. Affichage Transcription */}
-            {transcription && (
-              <div className="bg-white/95 backdrop-blur rounded-xl p-6 shadow-2xl animate-fade-in-up">
-                <div className="flex justify-between items-center mb-4 border-b pb-2">
-                  <h3 className="text-xl font-bold text-gray-800">📝 Transcription</h3>
-                  
-                  {/* Bouton Résumé (N'apparaît que si on a la transcription) */}
-                  {!summary && (
+            {/* BOUTON MAGIC (Je te remets ton code) */}
+            {serverFilename && !summary && (
+                <div className="flex justify-center animate-bounce mb-4">
                     <button 
                       onClick={handleSummarize}
                       disabled={isSummarizing}
-                      className="flex items-center gap-2 bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition disabled:opacity-50"
+                      className="flex items-center gap-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-8 py-4 rounded-full shadow-lg hover:scale-105 transition-all font-bold text-xl border-4 border-white/20"
                     >
-                      {isSummarizing ? "Génération IA..." : <><FaMagic /> Générer Résumé</>}
+                      {isSummarizing ? "🧠 Réflexion..." : "✨ Générer le Résumé IA"}
                     </button>
-                  )}
                 </div>
-                
-                <div className="max-h-60 overflow-y-auto bg-gray-50 p-4 rounded border border-gray-200 text-gray-700 whitespace-pre-wrap font-mono text-sm">
-                  {transcription}
-                </div>
-              </div>
             )}
 
-            {/* 2. Affichage Résumé */}
+            {/* 1. La Transcription (Style WhatsApp) */}
+            {transcription && (
+                <TranscriptionView text={transcription} />
+            )}
+
+            {/* 2. Le Résumé (Style Rapport) */}
             {summary && (
-              <div className="bg-gradient-to-br from-indigo-900 to-purple-900 text-white rounded-xl p-6 shadow-2xl border border-purple-400/30 animate-fade-in-up">
-                <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
-                  <FaMagic className="text-yellow-400" /> Résumé Intelligent
-                </h3>
-                <div className="prose prose-invert max-w-none whitespace-pre-wrap leading-relaxed">
-                  {summary}
-                </div>
-              </div>
+                <SummaryView markdown={summary} />
             )}
 
         </div>
