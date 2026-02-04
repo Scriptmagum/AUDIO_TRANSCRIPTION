@@ -112,8 +112,8 @@ function Recorder() {
   };
 
   return (
-    <div className='w-full h-screen flex flex-col items-center justify-center bg-gradient-to-r from-cyan-500 to-blue-500'>
-        <h2 className='text-[100px] text-white bg-black p-4 rounded-lg mx-4 mb-8'>
+    <div className='w-96 h-96 flex flex-col items-center justify-center rounded-lg shadow-lg border-2 border-purple-500'>
+        <h2 className='text-[50px] text-white'>
             {formatTime(seconds)}
         </h2>
 
