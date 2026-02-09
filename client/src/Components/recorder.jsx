@@ -130,17 +130,6 @@ function Recorder() {
         {recordedURL && (
             <div className="mt-8 bg-white p-4 rounded-lg shadow-lg">
                 <audio controls src={recordedURL} />
-                <button 
-                    onClick={uploadAudio}
-                    disabled={isUploading}
-                    className='flex items-center gap-2 px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-400 transition-colors font-bold'
-                >
-                  {isUploading ? 'Envoie en cours...' : (
-                    <>
-                      <FaPaperPlane /> Transcrire
-                    </>
-                  )}
-                </button>
             </div>
         )}
     </div>
