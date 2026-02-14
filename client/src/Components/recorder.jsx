@@ -1,7 +1,7 @@
 import React, { useRef, useState } from 'react'
 import { FaCircleStop, FaMicrophone, FaPaperPlane } from 'react-icons/fa6';
 
-function Recorder() {
+function Recorder({ onRecordingComplete }) {
   const [isRecording, setIsRecording] = useState(false);
   const [recordedURL, setRecordedURL] = useState('');
   const [audioBlob, setAudioBlob] = useState(null);
@@ -45,6 +45,8 @@ function Recorder() {
 
         setRecordedURL(url);
         setAudioBlob(recordedBlob);
+
+        onRecordingComplete(url, recordedBlob);
         
         chunks.current = [];
         clearInterval(timerRef.current);
@@ -112,7 +114,7 @@ function Recorder() {
   };
 
   return (
-    <div className='w-96 h-96 flex flex-col items-center justify-center rounded-lg shadow-lg border-2 border-purple-500'>
+    <div className='w-200 h-100 flex flex-col items-center justify-center rounded-lg shadow-lg border-2 border-purple-500'>
         <h2 className='text-[50px] text-white'>
             {formatTime(seconds)}
         </h2>
