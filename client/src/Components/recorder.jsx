@@ -128,8 +128,12 @@ function Recorder() {
         )}
         
         {recordedURL && (
-            <div className="mt-8 bg-white p-4 rounded-lg shadow-lg">
+            <div className="mt-8 bg-transparent p-4 rounded-lg shadow-lg">
                 <audio controls src={recordedURL} />
+                <div className="mt-4 flex justify-center gap-8">
+                  <button className="btn btn-neutral bg-gradient-to-br from-pink-300 to-orange-300 text-black px-4 py-2 rounded">Transcrire</button>
+                  <button className="btn btn-neutral bg-gradient-to-br from-pink-300 to-orange-300 text-black px-4 py-2 rounded">Résumer</button>
+                </div>
             </div>
         )}
     </div>
