@@ -4,6 +4,12 @@ require('dotenv').config();
 // Prépare libsodium (utilisé par le receiver audio de discord.js)
 const sodium = require('libsodium-wrappers');
 
+const axios = require('axios');
+const FormData = require('form-data');
+
+// Configuration Backend
+const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:3001';
+let backendToken = null; // On stockera le token ici
 // Import des éléments principaux de discord.js
 const { Client, GatewayIntentBits, Events } = require('discord.js');
 
@@ -32,12 +38,60 @@ const activeRecordings = new Map();
 // AJOUT CORRECTIF : Liste pour éviter d'enregistrer 2 fois la même personne en même temps
 const subscribedUsers = new Set();
 
-// Quand le bot est prêt, on attend que libsodium soit initialisé
+async function authenticateBot() {
+    try{
+        const response = await axios.get(`${BACKEND_URL}/bot/auth`);
+        if(response.data && response.data.token){
+            backendToken = response.data.token;
+            console.log("Token backend récupéré:", backendToken);
+        }
+        else{
+            console.error("Erreur: Token backend non reçu");
+        }
+    } catch (error){
+        console.error("Erreur lors de l'authentification du bot:", error);
+    }
+}
+
+async function sendToBackend(filePath, message) {
+    if(!backendToken){
+        await authenticateBot();
+        if(!backendToken){
+            return message.reply("Impossible d'authentifier le bot avec le backend.");
+        }
+    }
+    try{
+        const form = new FormData();
+        form.append('file', fs.createReadStream(filePath));
+        const response = await axios.post(`${BACKEND_URL}/meeting/process`, form, {
+            headers: {
+                ...form.getHeaders(),
+                'Authorization': `Bearer ${backendToken}` 
+            },
+            maxContentLength: Infinity,
+            maxBodyLength: Infinity
+        });
+        const data = response.data;
+        console.log("Réponse du backend:", data);
+        let replyText = "**Analyse terminée**\n";
+        if(data.files && data.files.pdf){
+            const pdfLink = `${BACKEND_URL}/meeting/result/pdf`;
+            replyText += `PDF disponible ici: ${pdfLink}\n`;
+        } else {
+            replyText += "Le traitement est fini, mais je n'ai pas reçu de lien PDF.";
+        }
+        message.reply(replyText);
+    } catch(error){
+        console.error("Erreur upload:", error.response ? error.response.data : error.message);
+    }
+}
+
 client.once(Events.ClientReady, async () => {
     await sodium.ready;
     console.log(`Bot connecté et Sodium chargé ! (Tag: ${client.user.tag})`);
-});
 
+    await authenticateBot();
+});
 // Écoute des messages pour traiter les commandes simples
 client.on('messageCreate', async (message) => {
     // On ne traite que les messages commençant par '!'
@@ -116,7 +170,6 @@ client.on('messageCreate', async (message) => {
                     console.log(`Erreur Décodeur: ${e.message}`);
                 });
 
-                // AJOUT CORRECTIF : Quand le stream coupe (silence), on retire l'utilisateur de la liste
                 opusStream.on('end', () => {
                     subscribedUsers.delete(userId);
                 });
@@ -152,21 +205,14 @@ client.on('messageCreate', async (message) => {
         const recording = activeRecordings.get(message.guild.id);
         if (!recording) return message.reply("Je n'enregistre rien.");
 
-        message.reply("Sauvegarde en cours... (MP3)");
+        message.reply("Enregistrement fini. Conversion et envoi au serveur...");
 
-        // Détruit la connexion pour libérer le salon
         recording.connection.destroy();
-        
-        // On nettoie la liste des utilisateurs
         subscribedUsers.clear();
         
-        // On attend un court instant pour laisser passer les derniers octets audio
-        // CORRECTION: On ferme le RAW d'abord, puis on convertit en MP3
         setTimeout(() => {
-            // Ferme proprement le stdin de FFmpeg pour finaliser le fichier
             recording.ffmpegProcess.stdin.end();
 
-            // Lancement de la conversion RAW -> MP3 (C'est ici que le fichier final est créé)
             const mp3FileName = 'enregistrement.mp3';
             
             const convertProcess = cp.spawn(ffmpeg, [
@@ -175,11 +221,16 @@ client.on('messageCreate', async (message) => {
                 '-y', mp3FileName
             ]);
 
-            convertProcess.on('close', () => {
-                console.log("Enregistrement terminé, converti et fermé.");
-                // Nettoyage du fichier temporaire
+            convertProcess.on('close', async () => {
+                console.log("Conversion terminée.");
+                
+                // Nettoyage fichier RAW
                 try { fs.unlinkSync(recording.rawFileName); } catch(e){}
                 activeRecordings.delete(message.guild.id);
+
+                // --- ENVOI AU BACKEND ---
+                await sendToBackend(mp3FileName, message);
+                try { fs.unlinkSync(mp3FileName); } catch(e){}
             });
 
         }, 500);
