@@ -40,7 +40,7 @@ const subscribedUsers = new Set();
 
 async function authenticateBot() {
     try{
-        const response = await axios.get(`${BACKEND_URL}/bot/auth`);
+        const response = await axios.get(`${BACKEND_URL}/auth/token`);
         if(response.data && response.data.token){
             backendToken = response.data.token;
             console.log("Token backend récupéré:", backendToken);
@@ -50,6 +50,7 @@ async function authenticateBot() {
         }
     } catch (error){
         console.error("Erreur lors de l'authentification du bot:", error);
+        console.log(`Tentative sur : ${BACKEND_URL}/auth/token`);
     }
 }
 
