@@ -21,11 +21,13 @@ const storage = multer.diskStorage({
 });
 
 // ... le reste ne change pas ...
+const allowedVideoMimes = ["video/webm"];
+
 const fileFilter = (req, file, cb) => {
-  if (file.mimetype.startsWith("audio/")) {
+  if (file.mimetype.startsWith("audio/") || allowedVideoMimes.includes(file.mimetype)) {
     cb(null, true);
   } else {
-    cb(new Error("Seuls les fichiers audio sont autorisés"), false);
+    cb(new Error("Seuls les fichiers audio (ou WebM contenant de l'audio) sont autorisés"), false);
   }
 };
 

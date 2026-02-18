@@ -1,67 +1,114 @@
 import fs from "fs";
-import { exec } from "child_process";
-import util from "util";
 import path from "path";
-
-const execPromise = util.promisify(exec);
+import { transcribeAudio } from "../services/transcription.service.js";
+import { summarizeText } from "../services/summarization.service.js";
+import { generatePdf } from "../services/pdf.service.js";
 
 export const processMeeting = async (req, res) => {
   try {
-    const filePath = req.file.path;
-
-    const hfToken = process.env.HF_TOKEN;
-    if (!hfToken) {
-        throw new Error("La clé HF_TOKEN est introuvable dans le fichier .env !");
+    if (!req.file?.path) {
+      throw new Error("Aucun fichier audio fourni");
     }
 
-    const whisperXPath = "/home/dalecooper/.local/bin/whisperx"
+    const uuid = req.user.uuid;
+    const userDir = path.join("storage", uuid);
 
-    console.log("Transcription en cours...");
-
-    const command = `${whisperXPath} "${filePath}" --model small --language fr --diarize --hf_token ${hfToken} --device cuda --compute_type float16 --output_dir "uploads" --output_format json`;
-
-    await execPromise(command);
-
-    let jsonPath = filePath + ".json"; 
-    if (!fs.existsSync(jsonPath)) {
-        const dir = path.dirname(filePath);
-        const nameWithoutExt = path.parse(filePath).name;
-        jsonPath = path.join(dir, nameWithoutExt + ".json");
+    if (!fs.existsSync(userDir)) {
+      fs.mkdirSync(userDir, { recursive: true });
     }
-    if (!fs.existsSync(jsonPath)){
-      throw new Error("Fichier json pas généré");
-    }   
 
-    const data = JSON.parse(fs.readFileSync(jsonPath, "utf-8"));
+    console.log("UUID:", uuid);
 
-    let dialog = "";
-    data.segments.forEach(segment=>{
-      let speakerName = segment.speaker || "Inconnu";
-      
-      const minutes = Math.floor(segment.start / 60);
-      const seconds = Math.floor(segment.start % 60).toString().padStart(2, '0');
-      const timeStamp = `${minutes}:${seconds}`;
+    /* ===========================
+       1️⃣ TRANSCRIPTION
+       =========================== */
+    const segments = await transcribeAudio(req.file.path);
 
-      dialog += `[${timeStamp}] ${speakerName} : ${segment.text.trim()}\n`;
-    })
-    
-    console.log("\n" + "=".repeat(60));
-    console.log("RÉSULTAT DE LA TRANSCRIPTION");
-    console.log("=".repeat(60));
-    console.log(dialog);
-    console.log("=".repeat(60));
-    console.log("Fin de la transcription.\n");
+    const transcript = segments.map(s => {
+      const min = Math.floor(s.start / 60).toString().padStart(2, "0");
+      const sec = Math.floor(s.start % 60).toString().padStart(2, "0");
+      return `[${min}:${sec}] ${s.speaker}: ${s.text}`;
+    }).join("\n");
 
+    const transcriptPath = path.join(userDir, "transcript.txt");
+    fs.writeFileSync(transcriptPath, transcript, "utf-8");
+
+    /* ===========================
+       2️⃣ RÉSUMÉ
+       =========================== */
+    const summary = await summarizeText(transcript);
+
+    /* ===========================
+       3️⃣ GÉNÉRATION PDF
+       =========================== */
+    const pdfPath = path.join(userDir, "resume.pdf");
+
+    await generatePdf(
+      pdfPath,
+      "Résumé de la réunion",
+      summary
+    );
+
+    /* ===========================
+       4️⃣ RÉPONSE
+       =========================== */
     res.json({
-        message: "Traitement terminé",
-        transcription: dialog,
-        raw_data: data
+      message: "Traitement terminé",
+      uuid,
+      files: {
+        transcript: "transcript.txt",
+        pdf: "resume.pdf"
+      }
     });
+
   } catch (error) {
-    console.error("Erreur lors de la transcription : ", error);
+    console.error("processMeeting error:", error);
     res.status(400).json({
-      error: "Erreur lors de la transcription",
+      error: "Erreur traitement",
       details: error.message
     });
   }
+};
+
+
+export const getMeetingResult = async (req, res) => {
+  try {
+    const uuid = req.user.uuid;
+    const userDir = path.join("storage", uuid);
+
+    const transcriptPath = path.join(userDir, "transcript.txt");
+    const pdfPath = path.join(userDir, "resume.pdf");
+
+    if (!fs.existsSync(transcriptPath) || !fs.existsSync(pdfPath)) {
+      return res.status(404).json({
+        error: "Résultats non disponibles"
+      });
+    }
+
+    const transcript = fs.readFileSync(transcriptPath, "utf-8");
+
+    res.json({
+      uuid,
+      transcript,
+      pdf_url: `/meeting/result/pdf`
+    });
+
+  } catch (err) {
+    console.error("getMeetingResult:", err);
+    res.status(500).json({ error: "Erreur serveur" });
+  }
+};
+
+export const sendPdf = (req, res) => {
+  const uuid = req.user.uuid;
+  const pdfPath = path.join("storage", uuid, "resume.pdf");
+
+  if (!fs.existsSync(pdfPath)) {
+    return res.status(404).json({ error: "PDF introuvable" });
+  }
+
+  res.setHeader("Content-Type", "application/pdf");
+  res.setHeader("Content-Disposition", "inline; filename=resume.pdf");
+
+  fs.createReadStream(pdfPath).pipe(res);
 };
