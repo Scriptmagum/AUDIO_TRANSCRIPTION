@@ -34,7 +34,7 @@ app.use((err, req, res, next) => {
 
 const PORT = process.env.PORT || 3001;
 
-app.listen(PORT, () => {
+app.listen(PORT,'127.0.0.1', () => {
   console.log(`
 ========================================
    Meeting AI Backend démarré

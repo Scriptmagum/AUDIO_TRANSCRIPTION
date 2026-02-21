@@ -5,13 +5,21 @@ const router = express.Router();
 
 /**
  * @swagger
- * /meeting/process:
+ * /meeting/process/{lang}:
  *   post:
- *     summary: Upload un audio et retourne la transcription
+ *     summary: Upload un audio et retourne la transcription avec résumé dans la langue spécifiée
  *     tags:
  *       - Meeting
  *     security:
  *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: lang
+ *         required: true
+ *         schema:
+ *           type: string
+ *           enum: [fr, en, de, es]
+ *         description: Code de langue (fr=french, en=english, de=german, es=spanish)
  *     requestBody:
  *       required: true
  *       content:
@@ -32,15 +40,17 @@ const router = express.Router();
  *               properties:
  *                 message:
  *                   type: string
- *                 transcription:
+ *                 uuid:
  *                   type: string
- *                 raw_segments:
- *                   type: array
- *                   items:
- *                     type: object
+ *                 files:
+ *                   type: object
+ *       400:
+ *         description: Erreur de traitement
+ *       500:
+ *         description: Erreur serveur
  */
 router.post(
-  "/process",
+  "/process/:lang",
   upload.single("file"),
   processMeeting
 );

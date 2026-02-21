@@ -10,6 +10,13 @@ export const processMeeting = async (req, res) => {
       throw new Error("Aucun fichier audio fourni");
     }
 
+    const { lang } = req.params;
+    const validLanguages = ["fr", "en", "de", "es"];
+
+    if (!validLanguages.includes(lang)) {
+      throw new Error(`Langue non supportée. Langues acceptées: ${validLanguages.join(", ")}`);
+    }
+
     const uuid = req.user.uuid;
     const userDir = path.join("storage", uuid);
 
@@ -18,6 +25,7 @@ export const processMeeting = async (req, res) => {
     }
 
     console.log("UUID:", uuid);
+    console.log("Langue:", lang);
 
     /* ===========================
        1️⃣ TRANSCRIPTION
@@ -36,7 +44,7 @@ export const processMeeting = async (req, res) => {
     /* ===========================
        2️⃣ RÉSUMÉ
        =========================== */
-    const summary = await summarizeText(transcript);
+    const summary = await summarizeText(transcript, lang);
 
     /* ===========================
        3️⃣ GÉNÉRATION PDF
@@ -45,7 +53,7 @@ export const processMeeting = async (req, res) => {
 
     await generatePdf(
       pdfPath,
-      "Résumé de la réunion",
+      "MEETING AI",
       summary
     );
 

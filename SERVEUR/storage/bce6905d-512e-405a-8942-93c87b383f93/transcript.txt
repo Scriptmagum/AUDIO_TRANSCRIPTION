@@ -1,0 +1,19 @@
+[00:01] A:  Bonjour Florian, ça
+[00:02] B:  Bonjour Corentin, comment vas-tu ?
+[00:04] A:  va super et toi ? Eh de
+[00:06] B:  oui, très bien, très bien moi aussi. Merci de demander,
+[00:08] B:  c'est gentil.
+[00:09] A:  rien, y'a pas de galère.
+[00:11] A:  Tu penses que la réunion était intéressante ce matin ?
+[00:17] B:  C'était très intéressant.
+[00:18] B:  Le profit d'une personne merveilleuse. Merci Monsieur David Bory.
+[00:22] A:  Oui,
+[00:22] A:  vous avez répondu exactement.
+[00:26] B:  Il nous a aiguillés dans la bonne voie.
+[00:29] B:  Je pense que ça va être un bon projet.
+[00:31] A:  Oui,
+[00:31] A:  je suis content de ce projet.
+[00:34] A:  Super,
+[00:35] A:  merci,
+[00:35] A:  au revoir.
+[00:36] B:  Au revoir.
