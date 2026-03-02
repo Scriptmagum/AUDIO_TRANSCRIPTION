@@ -82,28 +82,44 @@ function Recorder({ onRecordingComplete }) {
 
     setIsUploading(true);
 
+    try {
+    
+    const token = localStorage.getItem('meeting_token');
+
+    if (!token) {
+      alert("Vous n'êtes pas authentifié !");
+      return;
+    }
+
     const formData = new FormData();
+    
     formData.append('file', audioBlob, 'enregistrement.webm');
 
-    try {
-      const response = await fetch('http://127.0.0.1:3001/api/meeting/audio', {
-        method: 'POST',
-        body: formData,
-      });
+    
+    const response = await fetch('http://localhost:3001/meeting/process', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}` 
+      },
+      body: formData,
+    });
 
-      if(response.ok){
-        const data = await response.json();
-        console.log("Transcription reçue:", data);
-        alert(`Transcription: ${data.transcription}`);
-      } else {
-        console.error("Erreur lors de l'envoi du fichier:", response.statusText);
-      }
-    } catch(err) {
-      console.error("Erreur réseau:", err);
-    } finally {
-      setIsUploading(false);
+    if (response.ok) {
+      const data = await response.json();
+      console.log("Traitement terminé :", data);
+      alert("Audio envoyé et traité avec succès !");
+      
+    } else {
+      const errorData = await response.json();
+      console.error("Erreur backend:", errorData.error);
     }
+  } catch (err) {
+    console.error("Erreur réseau:", err);
+  } finally {
+    setIsUploading(false);
   }
+
+  };
 
   const formatTime = (totalSeconds) => {
     const hours = Math.floor(totalSeconds / 3600);
@@ -111,6 +127,7 @@ function Recorder({ onRecordingComplete }) {
     const seconds = totalSeconds % 60;
 
     return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+
   };
 
   return (
