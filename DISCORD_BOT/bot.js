@@ -1,220 +1,204 @@
-// Charge les variables d'environnement depuis un fichier .env
+// Charge les variables d'environnement
 require('dotenv').config();
 
-// Prépare libsodium (utilisé par le receiver audio de discord.js)
+// Prépare libsodium
 const sodium = require('libsodium-wrappers');
 
-const axios = require('axios');
-const FormData = require('form-data');
-
-// Configuration Backend
-const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:3001';
-let backendToken = null; // On stockera le token ici
-// Import des éléments principaux de discord.js
+// Import discord.js
 const { Client, GatewayIntentBits, Events } = require('discord.js');
 
-// Fonctions pour rejoindre et gérer les connexions vocales
+// Gestion vocale
 const { joinVoiceChannel, EndBehaviorType, getVoiceConnection } = require("@discordjs/voice");
 
-// Décodage Opus et manipulation des flux audio
+// Outils fichiers et audio
 const prism = require('prism-media');
 const fs = require('fs');
 const ffmpeg = require('ffmpeg-static');
 const cp = require('child_process');
 
-// Création du client Discord avec les intentions nécessaires
+// Requêtes HTTP
+const axios = require('axios');
+const FormData = require('form-data');
+
+// Configuration Backend
+// Si tu lances le backend en local sur ta machine, garde localhost
+const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:3001';
+
+// VARIABLE GLOBALE POUR LE TOKEN
+// On le stocke ici une bonne fois pour toutes
+let globalBotToken = null;
+
 const client = new Client({
     intents: [
         GatewayIntentBits.Guilds,
-        GatewayIntentBits.GuildVoiceStates, // pour suivre qui est dans les salons vocaux
+        GatewayIntentBits.GuildVoiceStates,
         GatewayIntentBits.GuildMessages,
         GatewayIntentBits.MessageContent
     ]
 });
 
-// Map pour stocker les enregistrements actifs par guildId
 const activeRecordings = new Map();
-
-// AJOUT CORRECTIF : Liste pour éviter d'enregistrer 2 fois la même personne en même temps
 const subscribedUsers = new Set();
 
+/**
+ * Fonction pour s'authentifier (appelée au démarrage)
+ */
 async function authenticateBot() {
-    try{
+    // Si on a déjà un token, on ne fait rien (sauf si on veut forcer le refresh)
+    if (globalBotToken) return globalBotToken;
+
+    try {
+        console.log(`Authentification auprès du backend (${BACKEND_URL})...`);
         const response = await axios.get(`${BACKEND_URL}/auth/token`);
-        if(response.data && response.data.token){
-            backendToken = response.data.token;
-            console.log("Token backend récupéré:", backendToken);
+        
+        if (response.data && response.data.token) {
+            globalBotToken = response.data.token;
+            console.log(`Token récupéré et stocké ! (UUID: ${response.data.uuid})`);
         }
-        else{
-            console.error("Erreur: Token backend non reçu");
+    } catch (error) {
+        console.error("❌ Échec de l'authentification au démarrage.");
+        if (error.code === 'ECONNREFUSED') {
+            console.error(`   Impossible de contacter le serveur sur ${BACKEND_URL}. Vérifie qu'il est bien lancé !`);
+        } else {
+            console.error(`   Erreur: ${error.message}`);
         }
-    } catch (error){
-        console.error("Erreur lors de l'authentification du bot:", error);
-        console.log(`Tentative sur : ${BACKEND_URL}/auth/token`);
     }
+    return globalBotToken;
 }
 
-async function sendToBackend(filePath, message) {
-    if(!backendToken){
-        await authenticateBot();
-        if(!backendToken){
-            return message.reply("Impossible d'authentifier le bot avec le backend.");
+/**
+ * Fonction pour envoyer l'audio et récupérer le PDF
+ */
+async function processAudioAndReply(filePath, message) {
+    try {
+        // Vérification de sécurité : a-t-on le token ?
+        if (!globalBotToken) {
+            console.log("Pas de token en mémoire, tentative de récupération...");
+            await authenticateBot();
+            if (!globalBotToken) {
+                return message.reply("Erreur critique : Impossible de s'authentifier auprès du serveur d'analyse.");
+            }
         }
-    }
-    try{
+
+        message.channel.send("Envoi de l'audio au serveur...");
+
+        // 1. Préparer le formulaire
         const form = new FormData();
         form.append('file', fs.createReadStream(filePath));
-        const response = await axios.post(`${BACKEND_URL}/meeting/process`, form, {
+
+        // 2. Envoyer l'audio (/meeting/process) avec le token global
+        await axios.post(`${BACKEND_URL}/meeting/process`, form, {
             headers: {
                 ...form.getHeaders(),
-                'Authorization': `Bearer ${backendToken}` 
+                'Authorization': `Bearer ${globalBotToken}`
             },
             maxContentLength: Infinity,
             maxBodyLength: Infinity
         });
-        const data = response.data;
-        console.log("Réponse du backend:", data);
-        let replyText = "**Analyse terminée**\n";
-        if(data.files && data.files.pdf){
-            const pdfLink = `${BACKEND_URL}/meeting/result/pdf`;
-            replyText += `PDF disponible ici: ${pdfLink}\n`;
-        } else {
-            replyText += "Le traitement est fini, mais je n'ai pas reçu de lien PDF.";
-        }
-        message.reply(replyText);
-    } catch(error){
-        console.error("Erreur upload:", error.response ? error.response.data : error.message);
+
+        message.channel.send("Traitement terminé. Récupération du compte rendu...");
+
+        // 3. Télécharger le PDF (/meeting/result/pdf)
+        const pdfResponse = await axios.get(`${BACKEND_URL}/meeting/result/pdf`, {
+            headers: { 'Authorization': `Bearer ${globalBotToken}` },
+            responseType: 'stream'
+        });
+
+        // 4. Envoyer le PDF dans Discord
+        await message.reply({
+            content: `**Compte rendu disponible !**`,
+            files: [{
+                attachment: pdfResponse.data,
+                name: 'Compte_Rendu_Reunion.pdf'
+            }]
+        });
+
+    } catch (error) {
+        console.error("Erreur Backend:", error.response ? error.response.data : error.message);
+        let errorMsg = "Une erreur est survenue lors du traitement.";
+        
+        if (error.code === 'ECONNREFUSED') errorMsg = "Le serveur backend ne répond pas.";
+        else if (error.response?.status === 401) errorMsg = "Token invalide ou expiré.";
+        else if (error.response?.status === 404) errorMsg = "Le fichier PDF n'a pas été trouvé.";
+
+        message.reply(`❌ ${errorMsg}`);
     }
 }
 
+// --- ÉVÉNEMENTS DISCORD ---
+
 client.once(Events.ClientReady, async () => {
     await sodium.ready;
-    console.log(`Bot connecté et Sodium chargé ! (Tag: ${client.user.tag})`);
-
+    console.log(`🤖 Bot connecté ! (Tag: ${client.user.tag})`);
+    
+    // Authentification immédiate au lancement
     await authenticateBot();
 });
-// Écoute des messages pour traiter les commandes simples
+
 client.on('messageCreate', async (message) => {
-    // On ne traite que les messages commençant par '!'
     if (!message.content.startsWith('!')) return;
 
-    // --- COMMANDE JOIN ---
+    // --- !join ---
     if (message.content === '!join') {
-        // Vérifie que l'utilisateur est bien dans un salon vocal
         if (message.member.voice.channel) {
             const channel = message.member.voice.channel;
-            
-            // CORRECTION: On utilise un fichier temporaire .pcm (audio brut) pour éviter la surcharge CPU
-            const rawFileName = `temp_${message.guild.id}.pcm`;
+            const rawFileName = `temp_${message.guild.id}_${Date.now()}.pcm`;
 
-            // On rejoint le salon vocal
             const connection = joinVoiceChannel({
                 channelId: channel.id,
                 guildId: channel.guild.id,
                 adapterCreator: channel.guild.voiceAdapterCreator,
                 selfDeaf: false,
             });
-            console.log("Rejoint le salon vocal:", channel.name);
+            console.log("Rejoint le salon:", channel.name);
 
-            // Lancement d'un processus FFmpeg pour écrire dans un fichier mp3
-            // CORRECTION: On écrit en RAW (s16le) d'abord. C'est instantané, donc pas de voix de robot.
             const ffmpegProcess = cp.spawn(ffmpeg, [
                 '-f', 's16le', '-ar', '48000', '-ac', '2', '-i', 'pipe:0',
-                '-f', 's16le', '-ar', '48000', '-ac', '2', // Sortie au même format (Copie parfaite)
+                '-f', 's16le', '-ar', '48000', '-ac', '2',
                 '-y', rawFileName
             ], { stdio: ['pipe', 'pipe', 'pipe'] });
 
-            // AJOUT CORRECTIF : Augmente la limite pour éviter le warning "MaxListenersExceededWarning"
             ffmpegProcess.stdin.setMaxListeners(100);
 
-            ffmpegProcess.stdin.on('error', (e) => { 
-                if (e.code !== 'EPIPE') console.log("Erreur FFmpeg Stdin:", e); 
-            });
-
-            ffmpegProcess.stderr.on('data', (data) => {
-                // FFmpeg peut envoyer des infos utiles sur stderr
-                // console.log(`FFmpeg: ${data}`); 
-            });
-
             const receiver = connection.receiver;
-
-            // Quand un utilisateur commence à parler
             receiver.speaking.on('start', (userId) => {
-                // AJOUT CORRECTIF : Si on écoute déjà cet utilisateur, on arrête tout de suite (Anti-Echo)
                 if (subscribedUsers.has(userId)) return;
-                
-                // On l'ajoute à la liste des gens écoutés
                 subscribedUsers.add(userId);
                 
-                console.log(`${userId} parle...`);
-
-                // On s'abonne au flux Opus de l'utilisateur
                 const opusStream = receiver.subscribe(userId, {
-                    end: {
-                        behavior: EndBehaviorType.AfterSilence,
-                        duration: 1000, 
-                    },
+                    end: { behavior: EndBehaviorType.AfterSilence, duration: 1000 },
                 });
+                const decoder = new prism.opus.Decoder({ rate: 48000, channels: 2, frameSize: 960 });
 
-                // Décodeur Opus vers PCM
-                const decoder = new prism.opus.Decoder({
-                    rate: 48000,
-                    channels: 2,
-                    frameSize: 960
-                });
-
-                decoder.on('error', (e) => {
-                    // Ignorer certaines erreurs de flux corrompu
-                    if (e.message && e.message.includes('corrupted')) {
-                        return;
-                    }
-                    console.log(`Erreur Décodeur: ${e.message}`);
-                });
-
-                opusStream.on('end', () => {
-                    subscribedUsers.delete(userId);
-                });
-
-                opusStream.on('error', (e) => {
-                    console.log(`Erreur Stream Opus: ${e.message}`);
-                    subscribedUsers.delete(userId);
-                });
+                opusStream.on('end', () => subscribedUsers.delete(userId));
+                opusStream.on('error', () => subscribedUsers.delete(userId));
 
                 try {
-                    // On relie le flux Opus -> décodeur -> stdin de FFmpeg
                     opusStream.pipe(decoder);
-                    // AJOUT CORRECTIF : { end: false } est vital pour ne pas fermer le fichier global
                     decoder.pipe(ffmpegProcess.stdin, { end: false });
-                } catch (e) {
-                    console.log("Erreur tuyauterie:", e);
-                    subscribedUsers.delete(userId);
-                }
+                } catch (e) { subscribedUsers.delete(userId); }
             });
 
-            // On garde la trace de la connexion et du processus FFmpeg
-            // CORRECTION: On stocke aussi le nom du fichier RAW pour le retrouver au stop
             activeRecordings.set(message.guild.id, { connection, ffmpegProcess, rawFileName });
-            message.reply("Je suis la !!");
-        
+            message.reply("J'écoute. Tapez `!stop` pour finir.");
         } else {
-            message.reply("Tu dois être dans un salon vocal.");
+            message.reply("Il faut être en vocal !");
         }
     }
 
-    // --- COMMANDE STOP ---
+    // --- !stop ---
     if (message.content === '!stop') {
         const recording = activeRecordings.get(message.guild.id);
-        if (!recording) return message.reply("Je n'enregistre rien.");
+        if (!recording) return message.reply("Rien à arrêter.");
 
-        message.reply("Enregistrement fini. Conversion et envoi au serveur...");
+        message.reply("⏹Fin de l'enregistrement...");
 
         recording.connection.destroy();
         subscribedUsers.clear();
         
         setTimeout(() => {
             recording.ffmpegProcess.stdin.end();
-
-            const mp3FileName = 'enregistrement.mp3';
+            const mp3FileName = `meeting_${message.guild.id}_${Date.now()}.mp3`;
             
             const convertProcess = cp.spawn(ffmpeg, [
                 '-f', 's16le', '-ar', '48000', '-ac', '2', '-i', recording.rawFileName,
@@ -223,37 +207,24 @@ client.on('messageCreate', async (message) => {
             ]);
 
             convertProcess.on('close', async () => {
-                console.log("Conversion terminée.");
-                
-                // Nettoyage fichier RAW
                 try { fs.unlinkSync(recording.rawFileName); } catch(e){}
                 activeRecordings.delete(message.guild.id);
 
-                // --- ENVOI AU BACKEND ---
-                await sendToBackend(mp3FileName, message);
+                // Envoi avec le token global
+                await processAudioAndReply(mp3FileName, message);
+                
                 try { fs.unlinkSync(mp3FileName); } catch(e){}
             });
 
-        }, 500);
+        }, 1000);
     }
-
-    // --- COMMANDE LEAVE ---
+    
+    // --- !leave ---
     if (message.content === '!leave') {
         const connection = getVoiceConnection(message.guild.id);
-        if (connection) {
-            connection.destroy();
-            const recording = activeRecordings.get(message.guild.id);
-            if (recording) {
-                // Si on a un enregistrement actif, on ferme aussi FFmpeg
-                recording.ffmpegProcess.stdin.end();
-                try { fs.unlinkSync(recording.rawFileName); } catch(e){} // Nettoyage si on part sauvagement
-                activeRecordings.delete(message.guild.id);
-                subscribedUsers.clear();
-            }
-            message.reply("Salam");
-        } else {
-            message.reply("Pas connecté.");
-        }
+        if (connection) connection.destroy();
+        activeRecordings.delete(message.guild.id);
+        message.reply("Au revoir !");
     }
 });
 
