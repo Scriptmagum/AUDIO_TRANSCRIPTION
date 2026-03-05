@@ -14,6 +14,10 @@ function Home() {
         nav('/apikey');
     };
 
+  const navigateToUploadPage = () => {
+        nav('/upload');
+    };
+
   useEffect(() => {
     const initAuth = async () => {
       if (!localStorage.getItem('meeting_token')) {
@@ -55,6 +59,10 @@ function Home() {
         <h1 className="text-4xl font-bold mb-12  text-white">Enregistreur Vocal</h1>
         
         <Recorder onRecordingComplete={addRecordingToList} />
+
+        <button onClick={navigateToUploadPage} className="btn btn-primary mt-5">Upload</button>
+
+
       </div>
 
       <div className="w-250 h-50 items-center justify-center rounded-lg bg-purple-500 mt-150">

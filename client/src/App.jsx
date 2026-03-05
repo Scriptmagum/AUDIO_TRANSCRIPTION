@@ -2,6 +2,7 @@ import './App.css'
 import { BrowserRouter, Routes, Route} from 'react-router-dom'
 import Home from './pages/Home'
 import TokenGene from './pages/Token'
+import Upload from './pages/Upload'
 
 
 
@@ -17,6 +18,8 @@ function App() {
         <Route path="/" element={<Home />} />
 
         <Route path="/apikey" element={<TokenGene />} />
+
+        <Route path="/upload" element={<Upload />} />
       </Routes>
     </BrowserRouter>
 
