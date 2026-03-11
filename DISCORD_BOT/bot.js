@@ -44,21 +44,28 @@ const subscribedUsers = new Set();
  * Fonction pour s'authentifier (appelée au démarrage)
  */
 async function authenticateBot() {
-    // Si on a déjà un token, on ne fait rien (sauf si on veut forcer le refresh)
+    // Si on a déjà un token, on le garde
     if (globalBotToken) return globalBotToken;
 
     try {
-        console.log(`Authentification auprès du backend (${BACKEND_URL})...`);
-        const response = await axios.get(`${BACKEND_URL}/auth/token`);
+        // On cible directement et uniquement ta nouvelle URL
+        const authUrl = 'https://transcript-api.onthewifi.com/auth/token';
+        console.log(`🔑 Authentification en cours sur : ${authUrl}`);
         
+        const response = await axios.get(authUrl);
+        
+        // On vérifie si le token est bien là
         if (response.data && response.data.token) {
             globalBotToken = response.data.token;
-            console.log(`Token récupéré et stocké ! (UUID: ${response.data.uuid})`);
+            console.log(`✅ Token récupéré avec succès ! (UUID: ${response.data.uuid})`);
+        } else {
+            console.error("❌ Le serveur a répondu (Code 200), mais impossible de trouver le '.token' !");
+            console.log("👉 Voici ce que ton backend a renvoyé exactement :", response.data);
         }
     } catch (error) {
         console.error("❌ Échec de l'authentification au démarrage.");
-        if (error.code === 'ECONNREFUSED') {
-            console.error(`   Impossible de contacter le serveur sur ${BACKEND_URL}. Vérifie qu'il est bien lancé !`);
+        if (error.response && error.response.status === 429) {
+            console.error(`   Trop de requêtes ! Tu as atteint la limite de l'API.`);
         } else {
             console.error(`   Erreur: ${error.message}`);
         }
