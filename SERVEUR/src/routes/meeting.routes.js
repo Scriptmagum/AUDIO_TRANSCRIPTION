@@ -1,12 +1,5 @@
 import express from "express";
 import { upload } from "../middlewares/upload.middleware.js";
-<<<<<<< HEAD
-import { transcribeAudio, summarizeMeeting } from "../controllers/meeting.controller.js";
-const router = express.Router();
-// 
-router.post("/transcribe", upload.single("file"), transcribeAudio);
-router.post("/summarize", summarizeMeeting);
-=======
 import { processMeeting,getMeetingResult ,sendPdf} from "../controllers/meeting.controller.js";
 const router = express.Router();
 
@@ -132,6 +125,5 @@ router.get("/result", getMeetingResult);
  */
 router.get("/result/pdf", sendPdf);
 
->>>>>>> origin/backend-transcript
 
 export default router;
