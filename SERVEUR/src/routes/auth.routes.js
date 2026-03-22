@@ -38,11 +38,11 @@ const tokenLimiter = rateLimit({
     },
     standardHeaders: true,
     legacyHeaders: false,
-    keyGenerator: (req) => {
+    /*keyGenerator: (req) => {
         // Utiliser l'IP ou l'utilisateur
         console.log(req.ip);
         return req.ip || req.connection.remoteAddress;
-    }
+    /*}*/
 });
 router.get("/token",tokenLimiter, (req, res) => {
   const uuid = uuidv4();

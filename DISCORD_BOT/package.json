@@ -9,9 +9,12 @@
   "author": "",
   "license": "ISC",
   "description": "",
+  "engines": {
+    "node": ">=22.12.0"
+  },
   "dependencies": {
     "@discordjs/opus": "^0.10.0",
-    "@discordjs/voice": "^0.18.0",
+    "@discordjs/voice": "^0.19.2",
     "axios": "^1.13.5",
     "discord.js": "^14.25.1",
     "dotenv": "^17.2.3",
