@@ -3,6 +3,9 @@ import { useNavigate } from 'react-router-dom'
 
 function Upload() {
 
+    const meetingProcessURL = 'http://localhost:3001/meeting/process';
+    const meetingResultURL = 'http://localhost:3001/meeting/result';
+    const meetingResultPDFURL = 'http://localhost:3001/meeting/result/pdf';
     const [transcript, setTranscript] = useState("");
     const nav = useNavigate();
     const [file, setFile] = useState(null);
@@ -38,7 +41,7 @@ function Upload() {
         setLoading(true);
 
         try {
-            const response = await fetch('http://localhost:3001/meeting/process', {
+            const response = await fetch(meetingProcessURL, {
                 method: 'POST',
                 headers: {
                     
@@ -51,7 +54,7 @@ function Upload() {
 
             if (response.ok) {
                 
-                const resultRes = await fetch('http://localhost:3001/meeting/result', {
+                const resultRes = await fetch(meetingResultURL, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 const resultData = await resultRes.json();
@@ -80,7 +83,7 @@ function Upload() {
         }
         
         try {
-            const response = await fetch('http://localhost:3001/meeting/result/pdf', {
+            const response = await fetch(meetingResultPDFURL, {
                 method: 'GET', 
                 headers: {
                     'Authorization': `Bearer ${token}` 

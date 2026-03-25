@@ -7,6 +7,7 @@ function Token() {
   
 
   const nav = useNavigate();
+  const tokenURL = 'http://localhost:3001/auth/token';
 
   const navigateToHome = () => {
         nav('/');
@@ -20,7 +21,7 @@ function Token() {
 
   const getToken = async () => {
     try {
-      const response = await fetch('http://localhost:3001/auth/token');
+      const response = await fetch(tokenURL);
 
       const data = await response.json();
 
