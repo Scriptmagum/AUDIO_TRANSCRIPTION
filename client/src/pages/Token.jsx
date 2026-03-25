@@ -11,6 +11,11 @@ function Token() {
   const navigateToHome = () => {
         nav('/');
     };
+  
+  const [token,SetToken] = useState(localStorage.getItem('meeting_token') || '');
+  const [uuid,SetUuid] = useState(localStorage.getItem('user_uuid') || '');
+
+  
 
 
   const getToken = async () => {
@@ -21,6 +26,9 @@ function Token() {
 
       localStorage.setItem('meeting_token', data.token);
       localStorage.setItem('user_uuid', data.uuid);
+
+      SetToken(data.token);
+      SetUuid(data.uuid);
 
       console.log("Succès ! Token généré :", data.token);
       console.log("Succès ! UUID généré :", data.uuid);
@@ -71,8 +79,8 @@ function Token() {
             <button className="text-xs font-medium text-yellow-500 hover:text-yellow-400 transition-colors">Show</button>
           </div>
           <div className="bg-black border border-gray-800 rounded-lg p-3 overflow-hidden">
-             
              <span className="text-gray-300 tracking-[0.3em] text-lg leading-none"></span>
+             <p>{token}</p>
           </div>
         </div>
 
@@ -82,7 +90,7 @@ function Token() {
             <span className="text-xs font-semibold text-gray-500 tracking-wider">USER UUID</span>
           </div>
           <div className="text-sm text-gray-400 font-mono">
-            
+            <p>{uuid}</p>
           </div>
         </div>
 
@@ -117,7 +125,7 @@ function Token() {
         </div>
 
         
-        <button className="text-sm font-medium text-yellow-500 hover:text-yellow-400 transition-colors flex items-center gap-1">
+        <button onClick={() => nav('/upload')} className="text-sm font-medium text-yellow-500 hover:text-yellow-400 transition-colors flex items-center gap-1">
           Proceed to upload your first audio file <span>&rarr;</span>
         </button>
 

@@ -50,16 +50,14 @@ function Upload() {
             const data = await response.json();
 
             if (response.ok) {
-                console.log("Succès ! Voici la réponse :", data);
                 
-                // On appelle la route result pour récupérer le texte brut
                 const resultRes = await fetch('http://localhost:3001/meeting/result', {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 const resultData = await resultRes.json();
                 
                 if (resultRes.ok) {
-                    setTranscript(resultData.transcript); // On stocke le texte brut
+                    setTranscript(resultData.transcript); 
                 }
                 alert("Transcription et résumé générés avec succès !");
             } else {
@@ -74,9 +72,37 @@ function Upload() {
         }
     };
 
+    const downloadPdf = async () => {
+        const token = localStorage.getItem('meeting_token');
+        if (!token) {
+            alert("Token manquant");
+            return;
+        }
+        
+        try {
+            const response = await fetch('http://localhost:3001/meeting/result/pdf', {
+                method: 'GET', 
+                headers: {
+                    'Authorization': `Bearer ${token}` 
+                }
+            });
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = "resume_reunion.pdf"; 
+            document.body.appendChild(a);
+            a.click(); 
+            a.remove(); 
+            window.URL.revokeObjectURL(url);
+        } catch (err) {
+            console.error("Erreur PDF:", err);
+            alert("Impossible de récupérer le compte-rendu PDF.");
+        }
+    };
+
     return (
         <div className="min-h-screen w-screen bg-black text-gray-200 font-sans flex flex-col items-center pt-10 px-4">
-            {/* Header */}
             <header className="w-full max-w-2xl flex items-center gap-4 mb-6">
                 <button className="text-gray-400 hover:text-yellow-500 transition-colors" onClick={navigateToHome}>
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-6">
@@ -139,9 +165,7 @@ function Upload() {
                     </div>
                     
                     
-                    <button 
-                        className="mt-4 w-full py-3 bg-zinc-800 text-white rounded-lg font-semibold hover:bg-zinc-700 transition-all border border-zinc-700 flex items-center justify-center gap-2"
-                    >
+                    <button onClick={downloadPdf} className="mt-4 w-full py-3 bg-zinc-800 text-white rounded-lg font-semibold hover:bg-zinc-700 transition-all border border-zinc-700 flex items-center justify-center gap-2" >
                         <span>Obtenir le compte-rendu PDF</span>
                     </button>
                 </div>
