@@ -1,0 +1,130 @@
+[00:00] A:  Il est là.
+[00:00] B:  Et comme ça, du coup, faites-moi un petit point sur ce que vous avez fait pour que je puisse voir un petit peu où vous en êtes,
+[00:12] B:  comment ça avance, s'il y a des blocages, etc.
+[00:16] A:  Moi, écoutez, j'ai finalisé le site, je pense. Il ne m'empêche plus qu'à vraiment tout mettre en ligne
+[00:23] @:  avec...
+[00:27] A:  euh alors j'essaye de le pool parce que j'ai tout fait à Polytech en fait sauf que vu que les discord de Polytech marchaient pas j'ai dû rentrer chez moi sauf que j'arrive pas à connecter mon pool donc mon git mon VS Code j'essaie de le j'essaie de le faire là
+[00:47] B:  Wait up.
+[00:50] A:  bah c'est que je sais pas il veut pas me connecter tu sais c'est mon nouveau pc là donc il faut que je m'authentifie sur VSCode mais il veut pas
+[01:00] B:  Sous-titrage ST' 501
+[01:02] B:  il veut pas
+[01:04] A:  dans le terminal ouais en général quoi il veut que je fasse un guide contrôle user.main et je le mets et ça change rien
+[01:16] A:  C'était dans travail,
+[01:18] A:  là je passe par le bas.
+[01:21] A:  Vas-y.
+[01:22] A:  Ouais.
+[01:24] A:  J'essaye.
+[01:25] A:  Copier l'adresse.
+[01:28] A:  C'était,
+[01:29] A:  je n'avais plus su.
+[01:32] A:  Un peu plus tôt.
+[01:35] A:  Poule.
+[01:36] A:  Vas-y, moi qui sors.
+[01:37] A:  Ok.
+[01:37] A:  Ça poule, je crois.
+[01:42] A:  Sinon,
+[01:43] A:  peut-être Quentin, soit on parle du Bud Discord,
+[01:46] A:  soit on parle de tips qu'on a essayé.
+[01:50] B:  Ouais, on peut parler de
+[01:52] A:  C'est ça.
+[01:53] B:  du panneau en devant.
+[01:56] A:  En plus, on a eu des questions.
+[02:02] B:  Il n'est pas devant sa caméra.
+[02:08] B:  Voilà,
+[02:09] B:  c'est pas vrai.
+[02:11] C:  Bah du coup moi Discord qui marchait pas j'avais un problème mais il battait vraiment des heures dessus et en fait le seul souci c'était une version de Node qui était pas qui était pas la bonne j'avais c'était c'était laquelle version j'ai plus c'était la 22.6 je crois que
+[02:31] C:  là là si package
+[02:35] B:  Comme ça,
+[02:36] B:  ça va.
+[02:40] C:  Titi,
+[02:41] C:  enfin,
+[02:43] C:  il a demandé un discord,
+[02:45] C:  donc ça s'appelle discordjs.voice,
+[02:48] C:  qu'il avait besoin,
+[02:49] C:  et j'avais 0.18.7, je crois,
+[02:56] C:  et en fait, ce qu'il fallait, c'est la 0.18.19.2.
+[03:01] C:  Là du coup normalement ça marche bien.
+[03:03] C:  C'est aussi pour relier au back-end de ReadyOne que j'avais changé je crois.
+[03:08] C:  Et là normalement ça marche et on a essayé avec Florian de faire un compte Azure pour faire le bot Teams.
+[03:17] A:  Impossible de se connecter.
+[03:22] C:  Enfin il nous demandait du coup une carte bleue, on ne savait pas si c'était payant.
+[03:27] C:  On ne savait pas trop.
+[03:30] C:  Si on allait déviter, du coup on n'a pas mis notre carte bleue.
+[03:34] A:  J'essaie de me connecter avec le compte de l'école,
+[03:37] A:  ils demandent un truc sur mobile et je dois essayer de me connecter. C'est assez galère.
+[03:43] C:  D'accord.
+[03:45] A:  C'est des clients.
+[03:47] A:  Donc ouais, on n'a pas trop avancé sur le bot Teams.
+[03:51] A:  On va être connecté.
+[03:57] C:  le Teams fallait le coder en C Sharp je crois donc au moins on a vu à peu près les stratégies
+[04:04] B:  Ah
+[04:04] C:  utilisées
+[04:04] B:  oui,
+[04:04] C: 
+[04:04] B:  c'est vrai.
+[04:05] B:  C'est obligatoirement réussir son chien,
+[04:07] B:  qu'il n'y ait pas moyen de faire autrement.
+[04:11] C:  on va voir mais en tout cas ça avait l'air d'être la manière dont le monde le fait quoi alors on pourrait voir
+[04:22] B:  Je vais vous fournir un numéro de carte bleue qui est bloqué à 1 euro et comme ça, ça pourra vous débloquer et on ne craint pas grand chose.
+[04:34] A:  Ça va y être, ça va y être, mais pourquoi je peux pas télécharger Windows
+[04:41] C:  Ça
+[04:43] A:  Installer
+[04:47] A:  bon écoute euh bah ça aurait été plus simple la polytech je vais pas te mentir
+[04:52] C:  Bah ouais.
+[04:54] A:  je sais pas pourquoi ils ont bloqué les trucs discord
+[04:57] B:  Est-ce que là c'est quoi le problème ?
+[05:01] A:  c'est que euh
+[05:03] A:  bah en fait j'avais tout bossé à polytech et donc là en essayant de se connecter là un peu avant pour la réunion j'ai vu que on pouvait pas se connecter à discord je sais pas ce qu'ils ont fait
+[05:15] A:  Donc là je suis obligé de tout réinstaller de Too Cool et réinstaller Node.js notamment sur le PC de chez moi.
+[05:31] A:  A la limite,
+[05:32] A:  je sais pas si Quentin tu peux peut-être...
+[05:36] A:  Si tu switches sur la branche, tu as eu le résultat.
+[05:40] C:  Du coup j'ai pensé mais j'ai peur que mon bot discord il se déconnecte du coup si je change de branche sinon
+[05:46] A:  Bon, c'est pas grave.
+[05:48] A:  Je ne sais pas si ça a pris ce que vous avez appris.
+[05:53] C:  je préfère qu'on pose maintenant et oui ok
+[05:59] C:  Mais ça va pas être parce que normalement ils donnent des points clés et tout et la réunion elle est pas assez complète je pense.
+[06:05] A:  Impossible d'afficher le changement car la sélection de scripts est désactivée sur ce système.
+[06:16] A:  Coup de nouvelles erreurs.
+[06:20] A:  voilà voilà on
+[06:21] B:  Alors, je vous donne un numéro de carte qui fonctionne avec 1 euro maximum.
+[06:26] B:  Donc faites attention quand même, même si vous ne pouvez pas faire grand chose avec,
+[06:32] B:  ne mettez pas ce numéro numéro qui est moi qui suis responsable derrière.
+[06:42] A:  va pas le mettre parce que ce sont juste pour Azure
+[06:47] C:  Merci beaucoup.
+[06:48] A:  merci alors ouvrir le menu démarrer taper powershell
+[07:01] A:  ça peut être marcher comment peut être que tu vas pas avoir t'as arrêté le bot là ou
+[07:07] C:  Je me suis dit que ce serait intéressant de voir si à la fin de la réunion on fait un plan sur ce qu'il faut faire plus tard, on pourra mieux s'adapter, enfin être prévu dans la réunion.
+[07:19] B:  Ah,
+[07:19] B:  ok.
+[07:22] B:  Bon, c'est bon,
+[07:23] B:  je pense.
+[07:26] B:  J'ai mon écran.
+[07:27] B:  Partager l'écran.
+[07:29] B:  Ok, donc, client.
+[07:33] A:  Donc voilà, j'ai refait la façade du site à l'avant,
+[07:36] A:  j'ai ajouté une petite explication.
+[07:42] A:  Je l'avais fait avec, au début j'avais commencé solo et puis j'ai utilisé, j'ai essayé, vous savez l'IDE que vous nous avez parlé, la curseur, et j'ai refait ça en commentaire, donc c'était cool.
+[07:58] A:  Et sinon j'ai ajouté une page pour s'enregistrer j'avais pris de ce que Corentin avait fait au tout début qui était resté en train de traîner et donc là on peut s'enregistrer si vous voulez que je fasse une démonstration ça va être un peu mais ça enregistre et ça envoie c'est comme si on apportait un fichier ça fait c'est la même transcription brute plus ça nous fait un pdf
+[08:24] A:  un pdf ré qui veut le résumer donc
+[08:28] B:  Ok.
+[08:30] A:  côté j'ai fait ça alors je sais pas trop ce que Ridouin a fait il peut pas être là il nous a dit qu'il était en en réunion en visio pour un stage parce qu'on a des stages qui commencent à arriver donc voilà
+[08:44] B:  Ok.
+[08:44] B:  Bon bah ok,
+[08:45] B:  très bien.
+[08:47] A:  je me suis refait le code comme avec les conseils que vous nous avez donné
+[08:54] B:  Ouais.
+[08:54] A:  je vais remettre les variables dans des urls dans des variables pour que ce soit plus simple à changer comme ça quand le backend sera fini j'aurai plus qu'à changer les variables pour le faire partout et voilà c'est bon ça après on a passé un peu de temps sur le code discord avec corentin j'ai essayé de l'aider comme je pouvais je pourrais être très utile
+[09:16] A:  tout seul au final et puis avec le bot azure qu'on a commencé aujourd'hui qui ne sait pas avancer donc voilà on
+[09:27] B:  Ok, très bien.
+[09:34] A:  va peut-être arrêter là
+[09:38] C:  maintenant j'avais le bot normalement ça fonctionne j'ai fini ça j'ai dû fonctionner en fin dimanche donc là à part le renseignement sur le bot team aujourd'hui parce qu'on a été bloqué par rapport à la carte enfin on savait pas et je me suis renseigné là je re-regarde encore et je vois beaucoup de c-charp je sais pas trop
+[10:05] C:  Comment ? Il ne faudrait jamais refaire ce fichage qui se connectait en back-end extérieur,
+[10:08] C:  mais ça devrait le faire quand même.
+[10:10] C:  On apprendra quelque chose.
+[10:11] C:  Et non,
+[10:12] C:  voilà.
+[10:13] B:  Et du coup, allez-y pour la démo du bot Discord, donc là,
+[10:17] B:  comme vous faites pour arrêter la réunion pour qu'on puisse voir le résumé, la transition.
+[10:25] C:  Oui, pour le bot,
+[10:26] C:  il y a du coup point d'exclamation join et point d'exclamation stop.
