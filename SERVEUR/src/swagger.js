@@ -1,7 +1,7 @@
 // swagger.js
-import swaggerJsdoc from "swagger-jsdoc";
-import swaggerUi from "swagger-ui-express";
-import path from "path";
+const swaggerJsdoc = require("swagger-jsdoc");
+const swaggerUi = require("swagger-ui-express");
+const path = require("path");
 const options = {
   definition: {
     openapi: "3.0.0",
@@ -13,24 +13,20 @@ const options = {
     servers: [
       { url: "http://localhost:3001" }
     ],
-    components: {
-      securitySchemes: {
-        BearerAuth: {
-          type: "http",
-          scheme: "bearer",
-          bearerFormat: "JWT"
-        }
-      }
-    },
-    security: [{ BearerAuth: [] }]
+    // Suppression de securitySchemes et security car l'authentification se fait via cookies
+    // et on ne veut plus afficher le bouton Authorize dans Swagger UI
+    // components: {},
+    // security: []
   },
   // Résoudre le chemin depuis le répertoire de travail pour s'assurer
   // que swagger-jsdoc trouve bien les fichiers quand on lance le serveur
   apis: [path.join(process.cwd(), "src", "routes", "*.js")]
 };
 
-export const specs = swaggerJsdoc(options);
+const specs = swaggerJsdoc(options);
 
-export const swaggerUiMiddleware = (app) => {
+const swaggerUiMiddleware = (app) => {
   app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(specs));
 };
+
+module.exports = { specs, swaggerUiMiddleware };

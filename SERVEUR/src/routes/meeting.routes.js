@@ -1,6 +1,6 @@
-import express from "express";
-import { upload } from "../middlewares/upload.middleware.js";
-import { processMeeting,getMeetingResult ,sendPdf} from "../controllers/meeting.controller.js";
+const express = require("express");
+const { upload } = require("../middlewares/upload.middleware.js");
+const { processMeeting, getMeetingResult, sendPdf } = require("../controllers/meeting.controller.js");
 const router = express.Router();
 
 /**
@@ -10,8 +10,6 @@ const router = express.Router();
  *     summary: Upload un audio et retourne la transcription avec résumé dans la langue spécifiée
  *     tags:
  *       - Meeting
- *     security:
- *       - BearerAuth: []
  *     parameters:
  *       - in: path
  *         name: lang
@@ -63,8 +61,6 @@ router.post(
  *     summary: Récupère la transcription et l'URL du PDF généré pour l'utilisateur
  *     tags:
  *       - Meeting
- *     security:
- *       - BearerAuth: []
  *     responses:
  *       200:
  *         description: Transcription et lien vers le PDF
@@ -112,8 +108,6 @@ router.get("/result", getMeetingResult);
  *     summary: Télécharge le PDF généré du résumé de la réunion
  *     tags:
  *       - Meeting
- *     security:
- *       - BearerAuth: []
  *     responses:
  *       200:
  *         description: PDF du résumé
@@ -136,4 +130,4 @@ router.get("/result", getMeetingResult);
 router.get("/result/pdf", sendPdf);
 
 
-export default router;
+module.exports = router;

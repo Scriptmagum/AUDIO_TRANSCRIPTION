@@ -1,4 +1,4 @@
-import OpenAI from "openai";
+const OpenAI = require("openai");
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
@@ -141,7 +141,7 @@ Aquí está la transcripción a resumir:`
  * @param {string} lang - Language code (fr, en, de, es). Defaults to 'fr' if not provided
  * @returns {Promise<string>} The summarized text
  */
-export const summarizeText = async (text, lang = "fr") => {
+const summarizeText = async (text, lang = "fr") => {
   const prompts = languagePrompts[lang] || languagePrompts.fr;
 
   const response = await openai.chat.completions.create({
@@ -155,3 +155,5 @@ export const summarizeText = async (text, lang = "fr") => {
 
   return response.choices[0].message.content.trim();
 };
+
+module.exports = { summarizeText };

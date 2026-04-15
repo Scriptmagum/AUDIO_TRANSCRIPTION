@@ -1,5 +1,5 @@
-import PDFDocument from "pdfkit";
-import fs from "fs";
+const PDFDocument = require("pdfkit");
+const fs = require("fs");
 
 /**
  * Parse le contenu markdown et le formate pour le PDF
@@ -41,7 +41,7 @@ const parseMarkdownContent = (content) => {
   return parsed;
 };
 
-export const generatePdf = (outputPath, title, content) => {
+const generatePdf = (outputTarget, title, content) => {
   return new Promise((resolve, reject) => {
     try {
       const doc = new PDFDocument({
@@ -50,7 +50,10 @@ export const generatePdf = (outputPath, title, content) => {
         bufferPages: true
       });
 
-      const stream = fs.createWriteStream(outputPath);
+      const stream = typeof outputTarget === 'string'
+        ? fs.createWriteStream(outputTarget)
+        : outputTarget;
+
       doc.pipe(stream);
 
       // Titre du document
@@ -66,7 +69,7 @@ export const generatePdf = (outputPath, title, content) => {
       // Parse et rendu du contenu
       const parsed = parseMarkdownContent(content);
 
-      parsed.forEach((item, index) => {
+      parsed.forEach((item) => {
         switch (item.type) {
           case "section":
             doc.moveDown(0.3);
@@ -122,3 +125,5 @@ export const generatePdf = (outputPath, title, content) => {
     }
   });
 };
+
+module.exports = { generatePdf };
