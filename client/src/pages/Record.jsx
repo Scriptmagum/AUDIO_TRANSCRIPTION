@@ -262,25 +262,7 @@ function Record() {
             </div>
           )}
 
-          {/* Visualisation (placeholder) */}
-          <div className="mt-6 w-full rounded-xl border border-gray-800 bg-[#121214] p-4">
-            <div className="text-xs text-gray-500 mb-3">Visualisation (bientôt)</div>
-            <div className="flex items-end gap-2 h-10">
-              {Array.from({ length: 14 }).map((_, i) => {
-                const active = status === 'recording'
-                const height = 6 + ((i * 7) % 22)
-                return (
-                  <div
-                    key={i}
-                    className={active ? 'w-full bg-yellow-500/20 animate-pulse' : 'w-full bg-yellow-500/10'}
-                    style={{ height }}
-                  />
-                )
-              })}
-            </div>
-          </div>
 
-          {/* Post-enregistrement */}
           {status === 'stopped' && audioBlob && (
             <div className="mt-7 w-full">
               <div className="text-sm text-gray-400 mb-4 text-center">
@@ -312,7 +294,7 @@ function Record() {
             </div>
           )}
 
-          {/* Résultat (optionnel mais utile) */}
+
           {transcript && (
             <div className="w-full mt-8">
               <h3 className="text-lg font-bold text-yellow-500 mb-3 flex items-center gap-2">

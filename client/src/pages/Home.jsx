@@ -42,7 +42,7 @@ function Home() {
 
           <main className="mt-12">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              {/* Carte 1 */}
+             
               <section className="rounded-2xl border border-gray-800 bg-[#09090b] p-8 shadow-yellow-500/5">
                 <h2 className="text-2xl font-bold">Révolutionnez vos comptes-rendus</h2>
                 <p className="mt-2 text-gray-400 max-w-lg">Comment ça marche, en 3 étapes.</p>
@@ -101,7 +101,7 @@ function Home() {
                 </ol>
               </section>
 
-              {/* Carte 2 */}
+              
               <section className="relative overflow-hidden rounded-2xl border border-yellow-500/25 bg-gradient-to-b from-yellow-500/10 via-[#09090b] to-[#09090b] p-8 shadow-yellow-500/20">
                 <div className="absolute inset-0 pointer-events-none">
                   <div aria-hidden="true" className="absolute -top-40 -right-40 h-80 w-80 rounded-full bg-yellow-500/10 blur-3xl" />
@@ -113,9 +113,9 @@ function Home() {
                     Importez votre audio/vidéo et obtenez un résumé prêt à télécharger en PDF.
                   </p>
 
-                  <div className="mt-7 rounded-2xl border border-gray-800 bg-[#09090b] p-5 shadow-inner">
-                    <div className="flex flex-col gap-4 md:flex-row md:items-stretch">
-                      {/* Choix A: Micro */}
+                  
+                    <div className="flex mt-6 flex-col gap-4 md:flex-row md:items-stretch">
+                      
                       <button
                         onClick={navigateToRecordPage}
                         className="flex-1 text-left rounded-xl border border-gray-800 bg-[#121214] hover:border-yellow-500/50 hover:bg-[#121214]/80 transition-all p-5 flex flex-col gap-3"
@@ -162,7 +162,7 @@ function Home() {
                         </div>
                       </button>
                     </div>
-                  </div>
+                  
                 </div>
               </section>
             </div>

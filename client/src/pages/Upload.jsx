@@ -113,18 +113,18 @@ function Upload() {
                     </svg>
                 </button>
                 <div>
-                    <h1 className="text-xl font-bold text-white">Upload Audio</h1>
-                    <p className="text-sm text-gray-500">Transcribe and summarize your meetings</p>
+                    <h1 className="text-xl font-bold text-white">Importer un fichier</h1>
+                    <p className="text-sm text-gray-500">Transcrivez et résumez vos réunion</p>
                 </div>
             </header>
 
             <div className="w-full max-w-2xl bg-[#09090b] border border-gray-800 rounded-2xl p-8 flex flex-col items-center shadow-lg">
-                <h2 className="text-2xl font-bold text-white mb-6">Process a New Meeting</h2>
+                <h2 className="text-2xl font-bold text-white mb-6">Transcrire un nouveau fichier</h2>
 
                 
                 <div className="w-full flex flex-col gap-4">
                     <fieldset className="w-full p-4 border border-dashed border-gray-600 rounded-xl bg-[#121214] flex flex-col items-center justify-center">
-                        <legend className="text-sm text-yellow-500 font-semibold px-2">Pick an audio file</legend>
+                        
                         
                         <input 
                             type="file" 
@@ -132,7 +132,7 @@ function Upload() {
                             onChange={handleFileChange}
                             className="text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-yellow-500/10 file:text-yellow-500 hover:file:bg-yellow-500/20 cursor-pointer" 
                         />
-                        <p className="text-xs text-gray-500 mt-2">Max size: 50MB (MP3, WAV, M4A, WEBM)</p>
+                        <p className="text-xs text-gray-500 mt-2">Taille maximale: 50MB (MP3, WAV, M4A, WEBM)</p>
                     </fieldset>
 
                     <button 
@@ -147,9 +147,15 @@ function Upload() {
                         {loading ? (
                             <span>Processing (this may take a minute)...</span>
                         ) : (
-                            <span>Transcribe & Summarize</span>
+                            <span>Transcrire et Résumer</span>
                         )}
                     </button>
+
+                    <select defaultValue="Pick a color" className="w-full max-w-xs mx-auto bg-[#121214] border border-gray-600 text-gray-300 text-sm rounded-lg focus:outline-none focus:border-yellow-500 block p-3 text-center appearance-none">
+                        <option disabled={true}>Mode de transcription</option>
+                        <option>Professionnel</option>
+                        <option>Détente</option>
+                    </select>
                 </div>
             </div>
 
