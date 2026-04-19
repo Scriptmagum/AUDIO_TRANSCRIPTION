@@ -10,6 +10,9 @@ export const processMeeting = async (req, res) => {
       throw new Error("Aucun fichier audio fourni");
     }
 
+    const mode = req.body.mode || "Professionnel";
+    const language = req.body.language || "Français";
+
     const uuid = req.user.uuid;
     const userDir = path.join("storage", uuid);
 
@@ -36,7 +39,7 @@ export const processMeeting = async (req, res) => {
     /* ===========================
        2️⃣ RÉSUMÉ
        =========================== */
-    const summary = await summarizeText(transcript);
+    const summary = await summarizeText(transcript, mode, language);
 
     /* ===========================
        3️⃣ GÉNÉRATION PDF

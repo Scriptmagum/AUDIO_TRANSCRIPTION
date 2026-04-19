@@ -9,6 +9,8 @@ function Upload() {
     const [transcript, setTranscript] = useState("");
     const nav = useNavigate();
     const [file, setFile] = useState(null);
+    const [mode,setMode] = useState("Professionnel");
+    const [language, setLanguage] = useState("Français");
     const [loading, setLoading] = useState(false);
     const navigateToHome = () => nav('/');
 
@@ -37,6 +39,8 @@ function Upload() {
         
         const formData = new FormData();
         formData.append("file", file);
+        formData.append("mode",mode);
+        formData.append("language",language);
 
         setLoading(true);
 
@@ -150,12 +154,21 @@ function Upload() {
                             <span>Transcrire et Résumer</span>
                         )}
                     </button>
+                    
+                    <div className = "flex flex-row gap-4 w-full max-w-2xl mx-auto"> 
+                        <select value={mode} onChange = {(e) => setMode(e.target.value)} className="w-full max-w-xs mx-auto bg-[#121214] border border-gray-600 text-gray-300 text-sm rounded-lg focus:outline-none focus:border-yellow-500 block p-3 text-center appearance-none">
+                            <option disabled={true}>Mode de transcription</option>
+                            <option>Professionnel</option>
+                            <option>Détente</option>
+                        </select>
 
-                    <select defaultValue="Pick a color" className="w-full max-w-xs mx-auto bg-[#121214] border border-gray-600 text-gray-300 text-sm rounded-lg focus:outline-none focus:border-yellow-500 block p-3 text-center appearance-none">
-                        <option disabled={true}>Mode de transcription</option>
-                        <option>Professionnel</option>
-                        <option>Détente</option>
-                    </select>
+                        <select value={language} onChange = {(e) => setLanguage(e.target.value)} className="w-full max-w-xs mx-auto bg-[#121214] border border-gray-600 text-gray-300 text-sm rounded-lg focus:outline-none focus:border-yellow-500 block p-3 text-center appearance-none">
+                            <option disabled={true}>Langue de transcription</option>
+                            <option>Français</option>
+                            <option>English</option>
+                        </select>
+                    </div>
+
                 </div>
             </div>
 
