@@ -1,6 +1,12 @@
+<<<<<<< HEAD
 import multer from "multer";
 import path from "path";
 import fs from "fs"; 
+=======
+const multer = require("multer");
+const path = require("path");
+const fs = require("fs"); // <--- 1. On ajoute ça
+>>>>>>> origin/backend-transcript
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -26,10 +32,12 @@ const fileFilter = (req, file, cb) => {
   }
 };
 
-export const upload = multer({
+const upload = multer({
   storage,
   fileFilter,
   limits: {
-    fileSize: 100 * 1024 * 1024 
+    fileSize: 100 * 1024 * 1024
   }
 });
+
+module.exports = { upload };

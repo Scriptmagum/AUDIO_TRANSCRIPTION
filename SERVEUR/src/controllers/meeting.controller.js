@@ -1,10 +1,12 @@
-import fs from "fs";
-import path from "path";
-import { transcribeAudio } from "../services/transcription.service.js";
-import { summarizeText } from "../services/summarization.service.js";
-import { generatePdf } from "../services/pdf.service.js";
+const fs = require("fs");
+const { transcribeAudio } = require("../services/transcription.service.js");
+const { summarizeText } = require("../services/summarization.service.js");
+const { generatePdf } = require("../services/pdf.service.js");
+const Transcription = require("../models/Transcription.js");
 
-export const processMeeting = async (req, res) => {
+const processMeeting = async (req, res) => {
+  let transcriptionDoc;
+
   try {
     if (!req.file?.path) {
       throw new Error("Aucun fichier audio fourni");
@@ -17,60 +19,61 @@ export const processMeeting = async (req, res) => {
       throw new Error(`Langue non supportée. Langues acceptées: ${validLanguages.join(", ")}`);
     }
 
-    const uuid = req.user.uuid;
-    const userDir = path.join("storage", uuid);
+    const userId = req.user.userId;
+    const filename = req.file.originalname || "audio-file";
 
-    if (!fs.existsSync(userDir)) {
-      fs.mkdirSync(userDir, { recursive: true });
-    }
-
-    console.log("UUID:", uuid);
+    console.log("UserId:", userId);
     console.log("Langue:", lang);
 
-    /* ===========================
-       1️⃣ TRANSCRIPTION
-       =========================== */
-    const segments = await transcribeAudio(req.file.path);
+    transcriptionDoc = new Transcription({
+      userId,
+      filename,
+      status: "pending"
+    });
+    await transcriptionDoc.save();
 
+    const segments = await transcribeAudio(req.file.path);
     const transcript = segments.map(s => {
       const min = Math.floor(s.start / 60).toString().padStart(2, "0");
       const sec = Math.floor(s.start % 60).toString().padStart(2, "0");
       return `[${min}:${sec}] ${s.speaker}: ${s.text}`;
     }).join("\n");
 
-    const transcriptPath = path.join(userDir, "transcript.txt");
-    fs.writeFileSync(transcriptPath, transcript, "utf-8");
-
-    /* ===========================
-       2️⃣ RÉSUMÉ
-       =========================== */
     const summary = await summarizeText(transcript, lang);
 
-    /* ===========================
-       3️⃣ GÉNÉRATION PDF
-       =========================== */
-    const pdfPath = path.join(userDir, "resume.pdf");
+    transcriptionDoc.result = transcript;
+    transcriptionDoc.summary = summary;
+    transcriptionDoc.status = "done";
+    await transcriptionDoc.save();
 
-    await generatePdf(
-      pdfPath,
-      "MEETING AI",
-      summary
-    );
-
-    /* ===========================
-       4️⃣ RÉPONSE
-       =========================== */
-    res.json({
-      message: "Traitement terminé",
-      uuid,
-      files: {
-        transcript: "transcript.txt",
-        pdf: "resume.pdf"
-      }
+    fs.unlink(req.file.path, err => {
+      if (err) console.error("Impossible de supprimer le fichier audio temporaire :", err);
     });
 
+    res.json({
+      message: "Traitement terminé",
+      transcriptionId: transcriptionDoc._id,
+      uuid: transcriptionDoc._id,
+      transcript: transcriptionDoc.result,
+      summary: transcriptionDoc.summary,
+      pdf_url: "/meeting/result/pdf"
+    });
   } catch (error) {
     console.error("processMeeting error:", error);
+
+    if (req.file?.path && fs.existsSync(req.file.path)) {
+      try {
+        fs.unlinkSync(req.file.path);
+      } catch (cleanupErr) {
+        console.error("cleanup error:", cleanupErr);
+      }
+    }
+
+    if (transcriptionDoc) {
+      transcriptionDoc.status = "error";
+      await transcriptionDoc.save().catch(saveErr => console.error("Erreur lors de la mise à jour du document transcription :", saveErr));
+    }
+
     res.status(400).json({
       error: "Erreur traitement",
       details: error.message
@@ -78,45 +81,67 @@ export const processMeeting = async (req, res) => {
   }
 };
 
+const getLatestTranscription = async (userId) => {
+  return Transcription.findOne({ userId, status: "done" }).sort({ createdAt: -1 }).lean();
+};
 
-export const getMeetingResult = async (req, res) => {
+const getMeetingResult = async (req, res) => {
   try {
-    const uuid = req.user.uuid;
-    const userDir = path.join("storage", uuid);
+    const userId = req.user.userId;
+    const transcription = await getLatestTranscription(userId);
 
-    const transcriptPath = path.join(userDir, "transcript.txt");
-    const pdfPath = path.join(userDir, "resume.pdf");
-
-    if (!fs.existsSync(transcriptPath) || !fs.existsSync(pdfPath)) {
+    if (!transcription) {
       return res.status(404).json({
         error: "Résultats non disponibles"
       });
     }
 
-    const transcript = fs.readFileSync(transcriptPath, "utf-8");
-
     res.json({
-      uuid,
-      transcript,
-      pdf_url: `/meeting/result/pdf`
+      uuid: transcription._id,
+      transcript: transcription.result,
+      summary: transcription.summary,
+      pdf_url: "/meeting/result/pdf"
     });
-
   } catch (err) {
     console.error("getMeetingResult:", err);
     res.status(500).json({ error: "Erreur serveur" });
   }
 };
 
-export const sendPdf = (req, res) => {
-  const uuid = req.user.uuid;
-  const pdfPath = path.join("storage", uuid, "resume.pdf");
+const sendPdf = async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const transcription = await getLatestTranscription(userId);
 
-  if (!fs.existsSync(pdfPath)) {
-    return res.status(404).json({ error: "PDF introuvable" });
+    if (!transcription) {
+      return res.status(404).json({ error: "PDF introuvable" });
+    }
+
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader("Content-Disposition", "inline; filename=resume.pdf");
+
+    await generatePdf(res, "MEETING AI", transcription.summary || transcription.result || "");
+  } catch (err) {
+    console.error("sendPdf:", err);
+    if (!res.headersSent) {
+      res.status(500).json({ error: "Erreur serveur" });
+    } else {
+      res.end();
+    }
   }
+<<<<<<< HEAD
 
   res.setHeader("Content-Type", "application/pdf");
   res.setHeader("Content-Disposition", "inline; filename=resume.pdf");
 
   fs.createReadStream(pdfPath).pipe(res);
 };
+=======
+};
+
+module.exports = {
+  processMeeting,
+  getMeetingResult,
+  sendPdf
+};
+>>>>>>> origin/backend-transcript
