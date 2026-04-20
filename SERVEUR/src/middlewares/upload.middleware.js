@@ -1,12 +1,6 @@
-<<<<<<< HEAD
-import multer from "multer";
-import path from "path";
-import fs from "fs"; 
-=======
 const multer = require("multer");
 const path = require("path");
 const fs = require("fs"); // <--- 1. On ajoute ça
->>>>>>> origin/backend-transcript
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {

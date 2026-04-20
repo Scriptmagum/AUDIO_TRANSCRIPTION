@@ -129,14 +129,6 @@ const sendPdf = async (req, res) => {
       res.end();
     }
   }
-<<<<<<< HEAD
-
-  res.setHeader("Content-Type", "application/pdf");
-  res.setHeader("Content-Disposition", "inline; filename=resume.pdf");
-
-  fs.createReadStream(pdfPath).pipe(res);
-};
-=======
 };
 
 module.exports = {
@@ -144,4 +136,3 @@ module.exports = {
   getMeetingResult,
   sendPdf
 };
->>>>>>> origin/backend-transcript
