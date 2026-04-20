@@ -1,7 +1,6 @@
 {
   "name": "meeting-ai-backend",
   "version": "1.0.0",
-  "type": "module",
   "description": "Backend pour transcription et résumé automatique de reunions",
   "main": "index.js",
   "scripts": {
@@ -12,10 +11,15 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "bcrypt": "^6.0.0",
+    "bcryptjs": "^3.0.3",
+    "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",
     "express": "^5.2.1",
+    "express-rate-limit": "^8.2.1",
     "jsonwebtoken": "^9.0.3",
+    "mongoose": "^9.3.3",
     "multer": "^2.0.2",
     "openai": "^6.16.0",
     "pdfkit": "^0.17.2",

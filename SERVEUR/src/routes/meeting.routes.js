@@ -1,17 +1,23 @@
-import express from "express";
-import { upload } from "../middlewares/upload.middleware.js";
-import { processMeeting,getMeetingResult ,sendPdf} from "../controllers/meeting.controller.js";
+const express = require("express");
+const { upload } = require("../middlewares/upload.middleware.js");
+const { processMeeting, getMeetingResult, sendPdf } = require("../controllers/meeting.controller.js");
 const router = express.Router();
 
 /**
  * @swagger
- * /meeting/process:
+ * /meeting/process/{lang}:
  *   post:
- *     summary: Upload un audio et retourne la transcription
+ *     summary: Upload un audio et retourne la transcription avec résumé dans la langue spécifiée
  *     tags:
  *       - Meeting
- *     security:
- *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: lang
+ *         required: true
+ *         schema:
+ *           type: string
+ *           enum: [fr, en, de, es]
+ *         description: Code de langue (fr=french, en=english, de=german, es=spanish)
  *     requestBody:
  *       required: true
  *       content:
@@ -32,15 +38,17 @@ const router = express.Router();
  *               properties:
  *                 message:
  *                   type: string
- *                 transcription:
+ *                 uuid:
  *                   type: string
- *                 raw_segments:
- *                   type: array
- *                   items:
- *                     type: object
+ *                 files:
+ *                   type: object
+ *       400:
+ *         description: Erreur de traitement
+ *       500:
+ *         description: Erreur serveur
  */
 router.post(
-  "/process",
+  "/process/:lang",
   upload.single("file"),
   processMeeting
 );
@@ -53,8 +61,6 @@ router.post(
  *     summary: Récupère la transcription et l'URL du PDF généré pour l'utilisateur
  *     tags:
  *       - Meeting
- *     security:
- *       - BearerAuth: []
  *     responses:
  *       200:
  *         description: Transcription et lien vers le PDF
@@ -102,8 +108,6 @@ router.get("/result", getMeetingResult);
  *     summary: Télécharge le PDF généré du résumé de la réunion
  *     tags:
  *       - Meeting
- *     security:
- *       - BearerAuth: []
  *     responses:
  *       200:
  *         description: PDF du résumé
@@ -126,4 +130,4 @@ router.get("/result", getMeetingResult);
 router.get("/result/pdf", sendPdf);
 
 
-export default router;
+module.exports = router;
