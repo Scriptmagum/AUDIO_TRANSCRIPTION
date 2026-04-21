@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 
 function Upload() {
@@ -6,14 +6,40 @@ function Upload() {
     const meetingProcessURL = 'http://localhost:3001/meeting/process';
     const meetingResultURL = 'http://localhost:3001/meeting/result';
     const meetingResultPDFURL = 'http://localhost:3001/meeting/result/pdf';
+    
     const [transcript, setTranscript] = useState("");
     const nav = useNavigate();
     const [file, setFile] = useState(null);
     const [mode,setMode] = useState("Professionnel");
     const [language, setLanguage] = useState("Français");
     const [loading, setLoading] = useState(false);
+    const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+    // Vérifie si on est connecté
+    useEffect(() => {
+        const token = localStorage.getItem('meeting_token');
+        setIsLoggedIn(!!token);
+    }, []);
+
     const navigateToHome = () => nav('/');
 
+    // Fonction de déconnexion
+    const handleLogout = async () => {
+        const token = localStorage.getItem('meeting_token');
+        if (token) {
+            try {
+                await fetch('http://localhost:3001/auth/signout', {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+            } catch (err) {
+                console.error("Erreur déconnexion:", err);
+            }
+        }
+        localStorage.removeItem('meeting_token');
+        setIsLoggedIn(false);
+        nav('/login');
+    };
     
     const handleFileChange = (e) => {
         if (e.target.files && e.target.files.length > 0) {
@@ -21,22 +47,19 @@ function Upload() {
         }
     };
 
-    
     const processFile = async () => {
         if (!file) {
             alert("Veuillez d'abord sélectionner un fichier !");
             return;
         }
 
-        
         const token = localStorage.getItem('meeting_token');
         if (!token) {
-            alert("Accès refusé. Veuillez générer un token sur la page Token.");
-            nav('/token'); 
+            alert("Accès refusé. Veuillez générer un token ou vous connecter.");
+            nav('/login'); 
             return;
         }
 
-        
         const formData = new FormData();
         formData.append("file", file);
         formData.append("mode",mode);
@@ -48,7 +71,6 @@ function Upload() {
             const response = await fetch(meetingProcessURL, {
                 method: 'POST',
                 headers: {
-                    
                     'Authorization': `Bearer ${token}` 
                 },
                 body: formData
@@ -57,7 +79,6 @@ function Upload() {
             const data = await response.json();
 
             if (response.ok) {
-                
                 const resultRes = await fetch(meetingResultURL, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
@@ -110,26 +131,52 @@ function Upload() {
 
     return (
         <div className="min-h-screen w-screen bg-black text-gray-200 font-sans flex flex-col items-center pt-10 px-4">
-            <header className="w-full max-w-2xl flex items-center gap-4 mb-6">
-                <button className="text-gray-400 hover:text-yellow-500 transition-colors" onClick={navigateToHome}>
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-6">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
-                    </svg>
-                </button>
+            
+            {/* Header restructuré pour intégrer le bouton Auth */}
+            <header className="w-full max-w-2xl flex items-center justify-between mb-6">
+                <div className="flex items-center gap-4">
+                    <button className="text-gray-400 hover:text-yellow-500 transition-colors" onClick={navigateToHome}>
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-6">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
+                        </svg>
+                    </button>
+                    <div>
+                        <h1 className="text-xl font-bold text-white">Importer un fichier</h1>
+                        <p className="text-sm text-gray-500 hidden sm:block">Transcrivez et résumez vos réunions</p>
+                    </div>
+                </div>
+
+                {/* Bouton Connexion / Déconnexion sur la droite */}
                 <div>
-                    <h1 className="text-xl font-bold text-white">Importer un fichier</h1>
-                    <p className="text-sm text-gray-500">Transcrivez et résumez vos réunion</p>
+                    {isLoggedIn ? (
+                        <button 
+                            onClick={handleLogout}
+                            className="flex items-center gap-2 px-4 py-2 bg-[#121214] border border-gray-800 hover:border-red-500 hover:text-red-500 text-gray-300 rounded-xl transition-all duration-300 text-sm font-semibold"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-4">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15m3 0 3-3m0 0-3-3m3 3H9" />
+                            </svg>
+                            <span className="hidden sm:inline">Déconnexion</span>
+                        </button>
+                    ) : (
+                        <button 
+                            onClick={() => nav('/login')}
+                            className="flex items-center gap-2 px-4 py-2 bg-[#121214] border border-gray-800 hover:border-yellow-500 hover:text-yellow-500 text-gray-300 rounded-xl transition-all duration-300 text-sm font-semibold"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-4">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" />
+                            </svg>
+                            <span className="hidden sm:inline">Connexion</span>
+                        </button>
+                    )}
                 </div>
             </header>
 
             <div className="w-full max-w-2xl bg-[#09090b] border border-gray-800 rounded-2xl p-8 flex flex-col items-center shadow-lg">
                 <h2 className="text-2xl font-bold text-white mb-6">Transcrire un nouveau fichier</h2>
 
-                
                 <div className="w-full flex flex-col gap-4">
                     <fieldset className="w-full p-4 border border-dashed border-gray-600 rounded-xl bg-[#121214] flex flex-col items-center justify-center">
-                        
-                        
                         <input 
                             type="file" 
                             accept="audio/*,video/webm"
@@ -155,14 +202,14 @@ function Upload() {
                         )}
                     </button>
                     
-                    <div className = "flex flex-row gap-4 w-full max-w-2xl mx-auto"> 
-                        <select value={mode} onChange = {(e) => setMode(e.target.value)} className="w-full max-w-xs mx-auto bg-[#121214] border border-gray-600 text-gray-300 text-sm rounded-lg focus:outline-none focus:border-yellow-500 block p-3 text-center appearance-none">
+                    <div className="flex flex-col sm:flex-row gap-4 w-full max-w-2xl mx-auto mt-2"> 
+                        <select value={mode} onChange={(e) => setMode(e.target.value)} className="w-full max-w-xs mx-auto bg-[#121214] border border-gray-600 text-gray-300 text-sm rounded-lg focus:outline-none focus:border-yellow-500 block p-3 text-center appearance-none">
                             <option disabled={true}>Mode de transcription</option>
                             <option>Professionnel</option>
                             <option>Détente</option>
                         </select>
 
-                        <select value={language} onChange = {(e) => setLanguage(e.target.value)} className="w-full max-w-xs mx-auto bg-[#121214] border border-gray-600 text-gray-300 text-sm rounded-lg focus:outline-none focus:border-yellow-500 block p-3 text-center appearance-none">
+                        <select value={language} onChange={(e) => setLanguage(e.target.value)} className="w-full max-w-xs mx-auto bg-[#121214] border border-gray-600 text-gray-300 text-sm rounded-lg focus:outline-none focus:border-yellow-500 block p-3 text-center appearance-none">
                             <option disabled={true}>Langue de transcription</option>
                             <option>Français</option>
                             <option>English</option>
@@ -185,7 +232,6 @@ function Upload() {
                             {transcript}
                         </pre>
                     </div>
-                    
                     
                     <button onClick={downloadPdf} className="mt-4 w-full py-3 bg-zinc-800 text-white rounded-lg font-semibold hover:bg-zinc-700 transition-all border border-zinc-700 flex items-center justify-center gap-2" >
                         <span>Obtenir le compte-rendu PDF</span>

@@ -1,0 +1,7 @@
+[00:00] A:  Bonjour,
+[00:01] A:  je suis Florian Varin, étudiant en quatrième année à l'école polytechnique d'ingénieur polytechnique.
+[00:08] A:  Je suis actuellement sur un projet de restitution audio ainsi que de transcription et de résumé.
+[00:17] A:  L'objectif c'est de faire une application en site web où on pourrait uploader des fichiers mp4.
+[00:26] A:  et faire en sorte qu'on renvoie un résumé, une transcription brute.
+[00:31] A:  On aimerait aussi faire un bot Discord.
+[00:35] A:  Merci beaucoup.

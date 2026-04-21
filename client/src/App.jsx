@@ -4,6 +4,8 @@ import Home from './pages/Home'
 import TokenGene from './pages/Token'
 import Upload from './pages/Upload'
 import Record from './pages/Record'
+import Login from './pages/Login'
+import Register from './pages/Register'
 
 
 
@@ -23,6 +25,10 @@ function App() {
         <Route path="/upload" element={<Upload />} />
 
         <Route path="/record" element={<Record />} />
+
+        <Route path="/login" element={<Login />} />
+
+        <Route path="/register" element={<Register />} />
       </Routes>
     </BrowserRouter>
 
