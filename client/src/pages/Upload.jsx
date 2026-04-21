@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom'
 
 function Upload() {
 
-    const meetingProcessURL = 'http://localhost:3001/meeting/process';
+    // On retire le "/process" ici pour l'ajouter dynamiquement plus bas
+    const meetingBaseURL = 'http://localhost:3001/meeting';
     const meetingResultURL = 'http://localhost:3001/meeting/result';
     const meetingResultPDFURL = 'http://localhost:3001/meeting/result/pdf';
     
@@ -11,32 +12,41 @@ function Upload() {
     const nav = useNavigate();
     const [file, setFile] = useState(null);
     const [mode,setMode] = useState("Professionnel");
-    const [language, setLanguage] = useState("Français");
+    // On initialise avec "fr" au lieu de "Français"
+    const [language, setLanguage] = useState("fr"); 
     const [loading, setLoading] = useState(false);
     const [isLoggedIn, setIsLoggedIn] = useState(false);
 
-    // Vérifie si on est connecté
     useEffect(() => {
-        const token = localStorage.getItem('meeting_token');
-        setIsLoggedIn(!!token);
+        const checkAuth = async () => {
+            try {
+                const res = await fetch(meetingResultURL, { 
+                    method: 'GET',
+                    credentials: 'include' 
+                });
+                if (res.status === 403 || res.status === 401) {
+                    setIsLoggedIn(false);
+                } else {
+                    setIsLoggedIn(true);
+                }
+            } catch (err) {
+                setIsLoggedIn(false);
+            }
+        };
+        checkAuth();
     }, []);
 
     const navigateToHome = () => nav('/');
 
-    // Fonction de déconnexion
     const handleLogout = async () => {
-        const token = localStorage.getItem('meeting_token');
-        if (token) {
-            try {
-                await fetch('http://localhost:3001/auth/signout', {
-                    method: 'POST',
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
-            } catch (err) {
-                console.error("Erreur déconnexion:", err);
-            }
+        try {
+            await fetch('http://localhost:3001/auth/signout', {
+                method: 'POST',
+                credentials: 'include'
+            });
+        } catch (err) {
+            console.error("Erreur déconnexion:", err);
         }
-        localStorage.removeItem('meeting_token');
         setIsLoggedIn(false);
         nav('/login');
     };
@@ -53,67 +63,68 @@ function Upload() {
             return;
         }
 
-        const token = localStorage.getItem('meeting_token');
-        if (!token) {
-            alert("Accès refusé. Veuillez générer un token ou vous connecter.");
-            nav('/login'); 
-            return;
-        }
-
         const formData = new FormData();
         formData.append("file", file);
-        formData.append("mode",mode);
-        formData.append("language",language);
+        formData.append("mode", mode);
+        // Le back n'en a plus besoin ici car c'est dans l'URL, mais on peut le laisser
+        formData.append("language", language); 
 
         setLoading(true);
 
         try {
-            const response = await fetch(meetingProcessURL, {
+            // CORRECTION ICI : On ajoute /process/fr à l'URL
+            const processUrl = `${meetingBaseURL}/process/${language}`;
+            
+            const response = await fetch(processUrl, {
                 method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${token}` 
-                },
+                credentials: 'include', 
                 body: formData
             });
+
+            if (response.status === 403 || response.status === 401) {
+                alert("Votre session a expiré. Veuillez vous reconnecter.");
+                nav('/login');
+                return;
+            }
 
             const data = await response.json();
 
             if (response.ok) {
                 const resultRes = await fetch(meetingResultURL, {
-                    headers: { 'Authorization': `Bearer ${token}` }
+                    method: 'GET',
+                    credentials: 'include'
                 });
-                const resultData = await resultRes.json();
                 
                 if (resultRes.ok) {
+                    const resultData = await resultRes.json();
                     setTranscript(resultData.transcript); 
                 }
                 alert("Transcription et résumé générés avec succès !");
             } else {
                 console.error("Erreur serveur :", data);
-                alert("Erreur: " + data.error);
+                alert("Erreur: " + (data.error || data.message || "Erreur de traitement"));
             }
         } catch (error) {
             console.error("Erreur de connexion :", error);
-            alert("Impossible de joindre le serveur.");
+            alert("Impossible de joindre le serveur. Vérifiez que votre backend est bien lancé !");
         } finally {
             setLoading(false);
         }
     };
 
     const downloadPdf = async () => {
-        const token = localStorage.getItem('meeting_token');
-        if (!token) {
-            alert("Token manquant");
-            return;
-        }
-        
         try {
             const response = await fetch(meetingResultPDFURL, {
                 method: 'GET', 
-                headers: {
-                    'Authorization': `Bearer ${token}` 
-                }
+                credentials: 'include' 
             });
+
+            if (response.status === 403 || response.status === 401) {
+                alert("Session expirée, veuillez vous reconnecter.");
+                nav('/login');
+                return;
+            }
+
             const blob = await response.blob();
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
@@ -132,7 +143,6 @@ function Upload() {
     return (
         <div className="min-h-screen w-screen bg-black text-gray-200 font-sans flex flex-col items-center pt-10 px-4">
             
-            {/* Header restructuré pour intégrer le bouton Auth */}
             <header className="w-full max-w-2xl flex items-center justify-between mb-6">
                 <div className="flex items-center gap-4">
                     <button className="text-gray-400 hover:text-yellow-500 transition-colors" onClick={navigateToHome}>
@@ -146,7 +156,6 @@ function Upload() {
                     </div>
                 </div>
 
-                {/* Bouton Connexion / Déconnexion sur la droite */}
                 <div>
                     {isLoggedIn ? (
                         <button 
@@ -196,7 +205,7 @@ function Upload() {
                         }`}
                     >
                         {loading ? (
-                            <span>Processing (this may take a minute)...</span>
+                            <span>Traitement en cours...</span>
                         ) : (
                             <span>Transcrire et Résumer</span>
                         )}
@@ -205,14 +214,17 @@ function Upload() {
                     <div className="flex flex-col sm:flex-row gap-4 w-full max-w-2xl mx-auto mt-2"> 
                         <select value={mode} onChange={(e) => setMode(e.target.value)} className="w-full max-w-xs mx-auto bg-[#121214] border border-gray-600 text-gray-300 text-sm rounded-lg focus:outline-none focus:border-yellow-500 block p-3 text-center appearance-none">
                             <option disabled={true}>Mode de transcription</option>
-                            <option>Professionnel</option>
-                            <option>Détente</option>
+                            <option value="Professionnel">Professionnel</option>
+                            <option value="Détente">Détente</option>
                         </select>
 
+                        {/* CORRECTION ICI : Les values sont 'fr', 'en', etc. */}
                         <select value={language} onChange={(e) => setLanguage(e.target.value)} className="w-full max-w-xs mx-auto bg-[#121214] border border-gray-600 text-gray-300 text-sm rounded-lg focus:outline-none focus:border-yellow-500 block p-3 text-center appearance-none">
-                            <option disabled={true}>Langue de transcription</option>
-                            <option>Français</option>
-                            <option>English</option>
+                            <option disabled={true} value="">Langue de transcription</option>
+                            <option value="fr">Français</option>
+                            <option value="en">English</option>
+                            <option value="de">Deutsch</option>
+                            <option value="es">Español</option>
                         </select>
                     </div>
 

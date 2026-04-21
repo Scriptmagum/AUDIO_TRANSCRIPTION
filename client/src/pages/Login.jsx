@@ -38,7 +38,6 @@ function Login() {
         }
         
         alert("Connexion réussie !");
-        nav('/'); 
       } else {
         alert("Erreur : " + (data.message || "Identifiants invalides"));
       }
@@ -90,7 +89,6 @@ function Login() {
                 type="email" 
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="nom@exemple.com"
                 required
                 className="w-full bg-[#09090b] border border-gray-700 text-white text-sm rounded-xl py-3 px-4 focus:outline-none focus:border-yellow-500 transition-all placeholder-gray-600"
               />
@@ -102,7 +100,6 @@ function Login() {
                 type="password" 
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
                 required
                 className="w-full bg-[#09090b] border border-gray-700 text-white text-sm rounded-xl py-3 px-4 focus:outline-none focus:border-yellow-500 transition-all placeholder-gray-600"
               />
@@ -127,9 +124,6 @@ function Login() {
           <div className="mt-8 flex items-center justify-center relative">
             <div className="absolute inset-0 flex items-center">
               <div className="w-full border-t border-gray-800"></div>
-            </div>
-            <div className="relative bg-[#121214] px-4 text-xs text-gray-500 uppercase tracking-widest font-semibold">
-              Ou
             </div>
           </div>
 

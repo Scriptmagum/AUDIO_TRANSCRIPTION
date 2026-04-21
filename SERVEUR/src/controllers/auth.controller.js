@@ -10,7 +10,7 @@ exports.signup = async (req, res) => {
 	try {
 		const existingUser = await User.findOne({ email });
 		if (existingUser) {
-			res.json({ message: 'Invalid credentials!' });
+			return res.json({ message: 'Invalid credentials!' });
 		}
 		const hashedPassword = await doHash(password, 12);
 

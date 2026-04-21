@@ -20,23 +20,24 @@ function Register() {
     setLoading(true);
 
     try {
+      // On envoie la requête au backend
       const response = await fetch('http://localhost:3001/auth/signup', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
+        // CRUCIAL : Permet au navigateur de recevoir et stocker le cookie 'Authorization'
+        // envoyé par le serveur (Set-Cookie)
+        credentials: 'include', 
         body: JSON.stringify({ email, password }),
       });
 
       const data = await response.json();
 
       if (data.success) { 
-        
-        if (data.token) {
-          localStorage.setItem('meeting_token', data.token);
-        }
-        
-        alert("Compte créé avec succès ! Vous êtes maintenant connecté.");
+        // Note : On ne touche plus au localStorage ici. 
+        // Le navigateur a déjà enregistré le cookie grâce à 'credentials: include'.
+        alert("Compte créé avec succès ! Votre session est active.");
         nav('/'); 
         
       } else {
@@ -53,9 +54,11 @@ function Register() {
   return (
     <div className="min-h-screen w-full bg-[#09090b] text-white font-sans flex flex-col items-center justify-center relative overflow-hidden px-4">
       
+      {/* Effets visuels d'arrière-plan */}
       <div aria-hidden="true" className="absolute -top-24 -left-24 h-72 w-72 rounded-full bg-yellow-500/10 blur-3xl pointer-events-none" />
       <div aria-hidden="true" className="absolute -bottom-24 -right-24 h-72 w-72 rounded-full bg-yellow-500/10 blur-3xl pointer-events-none" />
 
+      {/* Bouton Retour */}
       <div className="absolute top-8 left-4 md:left-8 z-20">
         <button 
           onClick={navigateToHome}
@@ -89,8 +92,8 @@ function Register() {
                 type="email" 
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="nom@exemple.com"
                 required
+                placeholder="nom@exemple.com"
                 className="w-full bg-[#09090b] border border-gray-700 text-white text-sm rounded-xl py-3 px-4 focus:outline-none focus:border-yellow-500 transition-all placeholder-gray-600"
               />
             </div>
@@ -101,8 +104,8 @@ function Register() {
                 type="password" 
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
                 required
+                placeholder="••••••••"
                 className="w-full bg-[#09090b] border border-gray-700 text-white text-sm rounded-xl py-3 px-4 focus:outline-none focus:border-yellow-500 transition-all placeholder-gray-600"
               />
             </div>
@@ -127,9 +130,7 @@ function Register() {
             <div className="absolute inset-0 flex items-center">
               <div className="w-full border-t border-gray-800"></div>
             </div>
-            <div className="relative bg-[#121214] px-4 text-xs text-gray-500 uppercase tracking-widest font-semibold">
-              Ou
-            </div>
+            <div className="relative px-4 bg-[#121214] text-xs text-gray-500 uppercase tracking-widest">ou</div>
           </div>
 
           <div className="mt-8 text-center">
