@@ -7,6 +7,8 @@ function Register() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
+  const singupURL = 'http://localhost:3001/auth/signup';
+
   const navigateToHome = () => {
     nav('/');
   };
@@ -20,14 +22,11 @@ function Register() {
     setLoading(true);
 
     try {
-      // On envoie la requête au backend
-      const response = await fetch('http://localhost:3001/auth/signup', {
+      const response = await fetch(singupURL, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        // CRUCIAL : Permet au navigateur de recevoir et stocker le cookie 'Authorization'
-        // envoyé par le serveur (Set-Cookie)
         credentials: 'include', 
         body: JSON.stringify({ email, password }),
       });
@@ -35,10 +34,7 @@ function Register() {
       const data = await response.json();
 
       if (data.success) { 
-        // Note : On ne touche plus au localStorage ici. 
-        // Le navigateur a déjà enregistré le cookie grâce à 'credentials: include'.
-        alert("Compte créé avec succès ! Votre session est active.");
-        nav('/'); 
+        alert("Compte créé avec succès !"); 
         
       } else {
         alert("Erreur : " + (data.message || data.error || "Inscription échouée"));
@@ -54,11 +50,9 @@ function Register() {
   return (
     <div className="min-h-screen w-full bg-[#09090b] text-white font-sans flex flex-col items-center justify-center relative overflow-hidden px-4">
       
-      {/* Effets visuels d'arrière-plan */}
-      <div aria-hidden="true" className="absolute -top-24 -left-24 h-72 w-72 rounded-full bg-yellow-500/10 blur-3xl pointer-events-none" />
-      <div aria-hidden="true" className="absolute -bottom-24 -right-24 h-72 w-72 rounded-full bg-yellow-500/10 blur-3xl pointer-events-none" />
 
-      {/* Bouton Retour */}
+
+     
       <div className="absolute top-8 left-4 md:left-8 z-20">
         <button 
           onClick={navigateToHome}
@@ -130,12 +124,10 @@ function Register() {
             <div className="absolute inset-0 flex items-center">
               <div className="w-full border-t border-gray-800"></div>
             </div>
-            <div className="relative px-4 bg-[#121214] text-xs text-gray-500 uppercase tracking-widest">ou</div>
           </div>
 
           <div className="mt-8 text-center">
             <p className="text-sm text-gray-400">
-              Déjà un compte ?{' '}
               <button onClick={navigateToLogin} className="text-yellow-500 font-bold hover:text-yellow-400 transition-colors">
                 Se connecter
               </button>

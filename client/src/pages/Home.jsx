@@ -4,15 +4,11 @@ import './Home.css'
 
 function Home() {
   
+  const signoutURL = 'http://localhost:3001/auth/signout';
+
   const nav = useNavigate();
-  
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   
-  useEffect(() => {
-    const token = localStorage.getItem('meeting_token');
-    setIsLoggedIn(!!token);
-  }, []);
 
   const navigateToTokenPage = () => { nav('/apikey'); };
   const navigateToUploadPage = () => { nav('/upload'); };
@@ -21,61 +17,45 @@ function Home() {
 
   
   const handleLogout = async () => {
-    const token = localStorage.getItem('meeting_token');
-    
-    
-    if (token) {
-        try {
-            await fetch('http://localhost:3001/auth/signout', {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
-            });
-        } catch (err) {
-            console.error("Erreur lors de la déconnexion :", err);
-        }
+    try {
+        await fetch(signoutURL, {
+            method: 'POST',
+            credentials: 'include'
+        });
+        alert("Déconnexion réussie !");
+    } catch (err) {
+        console.error("Erreur lors de la déconnexion :", err);
     }
     
-    
-    localStorage.removeItem('meeting_token');
-    setIsLoggedIn(false);
-    nav('/login'); 
   };
 
   return (
     <div className="min-h-screen w-full bg-[#09090b] text-white font-sans relative overflow-hidden">
       
-      <div aria-hidden="true" className="absolute -top-24 -left-24 h-72 w-72 rounded-full bg-yellow-500/10 blur-3xl" />
-      <div aria-hidden="true" className="absolute -bottom-24 -right-24 h-72 w-72 rounded-full bg-yellow-500/10 blur-3xl" />
+      
 
       <div className="relative px-4 py-10 md:p-10">
         <div className="max-w-6xl mx-auto">
           
           
-          <div className="flex justify-end mb-4">
-            {isLoggedIn ? (
-                <button 
-                  onClick={handleLogout}
-                  className="flex items-center gap-2 px-5 py-2 bg-[#121214] border border-gray-800 hover:border-red-500 hover:text-red-500 text-gray-300 rounded-xl transition-all duration-300 text-sm font-semibold"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-5">
+          <div className="flex items-center gap-3 justify-end">
+    
+  
+                  <button onClick={() => nav('/login')} className={`flex items-center gap-2 px-4 py-2 bg-[#121214] rounded-xl transition-all duration-300 text-sm font-semibold hover:bg-gray-900`}>
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-4">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" />
+                      </svg>
+                      <span className="hidden sm:inline">Connexion</span>
+                  </button>
+
+            <button onClick={handleLogout} className={`flex items-center gap-2 px-4 py-2 bg-[#121214] border-yellow-500 rounded-xl transition-all duration-300 text-sm font-semibold hover:bg-gray-900`}>
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-4">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15m3 0 3-3m0 0-3-3m3 3H9" />
-                  </svg>
-                  <span>Déconnexion</span>
-                </button>
-            ) : (
-                <button 
-                  onClick={navigateToLogin}
-                  className="flex items-center gap-2 px-5 py-2 bg-[#121214] border border-gray-800 hover:border-yellow-500 hover:text-yellow-500 text-gray-300 rounded-xl transition-all duration-300 text-sm font-semibold"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-5">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" />
-                  </svg>
-                  <span>Connexion</span>
-                </button>
-            )}
-          </div>
+                </svg>
+                <span className="hidden sm:inline">Déconnexion</span>
+            </button>
+
+        </div>
 
           <header className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
             <div>
@@ -110,7 +90,7 @@ function Home() {
                     </div>
                     <div className="flex flex-col text-left">
                       <div className="text-sm font-semibold text-white">1. Authentification</div>
-                      <div className="text-sm text-gray-400">Générez votre token d'accès sécurisé.</div>
+                      <div className="text-sm text-gray-400">Connectez-vous à votre compte</div>
                     </div>
                   </li>
 

@@ -15,7 +15,6 @@ function Login() {
     nav('/register');
   };
 
-  
   const handleLogin = async (e) => {
     e.preventDefault(); 
     setLoading(true);
@@ -26,6 +25,8 @@ function Login() {
         headers: {
           'Content-Type': 'application/json',
         },
+        
+        credentials: 'include', 
         body: JSON.stringify({ email, password }),
       });
 
@@ -33,11 +34,9 @@ function Login() {
 
       if (data.success) { 
         
-        if (data.token) {
-          localStorage.setItem('meeting_token', data.token);
-        }
         
         alert("Connexion réussie !");
+        
       } else {
         alert("Erreur : " + (data.message || "Identifiants invalides"));
       }
@@ -51,9 +50,6 @@ function Login() {
 
   return (
     <div className="min-h-screen w-full bg-[#09090b] text-white font-sans flex flex-col items-center justify-center relative overflow-hidden px-4">
-      
-      <div aria-hidden="true" className="absolute -top-24 -left-24 h-72 w-72 rounded-full bg-yellow-500/10 blur-3xl pointer-events-none" />
-      <div aria-hidden="true" className="absolute -bottom-24 -right-24 h-72 w-72 rounded-full bg-yellow-500/10 blur-3xl pointer-events-none" />
 
       <div className="absolute top-8 left-4 md:left-8 z-20">
         <button 

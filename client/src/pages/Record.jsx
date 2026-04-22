@@ -5,17 +5,22 @@ function Record() {
   const nav = useNavigate()
   const navigateToHome = () => nav('/')
 
+  const meetingResultURL = 'http://localhost:3001/meeting/result';
+  const processURL= 'http://localhost:3001/meeting/process/fr';
+  const meetingResultPDFURL = 'http://localhost:3001/meeting/result/pdf';
+
   const audioRef = useRef(null)
   const mediaRecorderRef = useRef(null)
   const streamRef = useRef(null)
 
-  const [status, setStatus] = useState('idle') // idle | recording | paused | stopped
+  const [status, setStatus] = useState('idle') 
   const [audioBlob, setAudioBlob] = useState(null)
   const [audioUrl, setAudioUrl] = useState(null)
 
   const [isSending, setIsSending] = useState(false)
   const [loading, setLoading] = useState(false)
   const [transcript, setTranscript] = useState('')
+
 
   const mimeType = useMemo(() => {
     if (typeof MediaRecorder === 'undefined') return ''
@@ -35,7 +40,7 @@ function Record() {
         streamRef.current.getTracks().forEach((t) => t.stop())
       }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    
   }, [])
 
   useEffect(() => {
@@ -113,13 +118,6 @@ function Record() {
     if (!audioBlob) return
     if (isSending) return
 
-    const token = localStorage.getItem('meeting_token')
-    if (!token) {
-      alert("Accès refusé. Veuillez générer un token sur la page Token.")
-      nav('/apikey')
-      return
-    }
-
     const file = new File(
       [audioBlob],
       'enregistrement_reunion.webm',
@@ -131,20 +129,28 @@ function Record() {
     try {
       const formData = new FormData()
       formData.append('file', file)
+      
+      formData.append('mode', 'Professionnel'); 
 
-      const response = await fetch('http://localhost:3001/meeting/process', {
+      
+      const response = await fetch(processURL, {
         method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        credentials: 'include', 
         body: formData,
       })
+
+      if (response.status === 403 || response.status === 401) {
+        alert("Votre session a expiré. Veuillez vous reconnecter.");
+        nav('/login');
+        return;
+      }
 
       const data = await response.json()
 
       if (response.ok) {
-        const resultRes = await fetch('http://localhost:3001/meeting/result', {
-          headers: { Authorization: `Bearer ${token}` },
+        const resultRes = await fetch(meetingResultURL, {
+          method: 'GET',
+          credentials: 'include',
         })
         const resultData = await resultRes.json()
 
@@ -152,7 +158,7 @@ function Record() {
         alert('Transcription et résumé générés avec succès !')
       } else {
         console.error('Erreur serveur :', data)
-        alert('Erreur: ' + data.error)
+        alert('Erreur: ' + (data.error || data.message || "Erreur inconnue"))
       }
     } catch (error) {
       console.error('Erreur de connexion :', error)
@@ -164,17 +170,17 @@ function Record() {
   }
 
   const downloadPdf = async () => {
-    const token = localStorage.getItem('meeting_token')
-    if (!token) {
-      alert('Token manquant')
-      return
-    }
-
     try {
-      const response = await fetch('http://localhost:3001/meeting/result/pdf', {
+      const response = await fetch(meetingResultPDFURL, {
         method: 'GET',
-        headers: { Authorization: `Bearer ${token}` },
+        credentials: 'include', 
       })
+
+      if (response.status === 403 || response.status === 401) {
+        alert('Session expirée, veuillez vous reconnecter.');
+        nav('/login');
+        return;
+      }
 
       const blob = await response.blob()
       const url = window.URL.createObjectURL(blob)
@@ -200,7 +206,7 @@ function Record() {
   )
 
   return (
-    <div className="min-h-screen w-screen bg-black text-gray-200 font-sans flex flex-col items-center pt-10 px-4">
+    <div className="min-h-screen w-screen bg-[#09090b] text-gray-200 font-sans flex flex-col items-center pt-10 px-4">
       <header className="w-full max-w-2xl flex items-center gap-4 mb-6">
         <button
           className="flex items-center gap-2 text-yellow-500 hover:text-yellow-400 transition-colors"
@@ -229,7 +235,7 @@ function Record() {
             </div>
           </div>
 
-          {/* Bouton central */}
+          
           {status === 'idle' && (
             <button
               onClick={startRecording}
@@ -242,7 +248,7 @@ function Record() {
             </button>
           )}
 
-          {/* Contrôles actifs */}
+          
           {(status === 'recording' || status === 'paused') && (
             <div className="mt-6 w-full flex flex-col gap-3">
               <button
@@ -255,9 +261,9 @@ function Record() {
 
               <button
                 onClick={stopRecording}
-                className="w-full py-3 bg-gradient-to-r from-yellow-500 via-yellow-500 to-red-500 text-black rounded-lg font-semibold hover:brightness-110 transition-all flex items-center justify-center gap-2 border border-red-400/30"
+                className="w-full py-3 bg-yellow-500 text-black hover:bg-yellow-400 shadow-lg shadow-yellow-500/20 rounded-lg font-semibold hover:brightness-110 transition-all flex items-center justify-center gap-2 border border-red-400/30"
               >
-                <span>Arrêter &amp; Analyser</span>
+                <span>Arrêter et Analyser</span>
               </button>
             </div>
           )}
@@ -324,4 +330,3 @@ function Record() {
 }
 
 export default Record
-

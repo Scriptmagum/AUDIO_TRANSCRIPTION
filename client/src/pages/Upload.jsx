@@ -3,53 +3,33 @@ import { useNavigate } from 'react-router-dom'
 
 function Upload() {
 
-    // On retire le "/process" ici pour l'ajouter dynamiquement plus bas
+    
     const meetingBaseURL = 'http://localhost:3001/meeting';
     const meetingResultURL = 'http://localhost:3001/meeting/result';
     const meetingResultPDFURL = 'http://localhost:3001/meeting/result/pdf';
+    const signoutURL = 'http://localhost:3001/auth/signout';
     
     const [transcript, setTranscript] = useState("");
     const nav = useNavigate();
     const [file, setFile] = useState(null);
     const [mode,setMode] = useState("Professionnel");
-    // On initialise avec "fr" au lieu de "Français"
     const [language, setLanguage] = useState("fr"); 
     const [loading, setLoading] = useState(false);
-    const [isLoggedIn, setIsLoggedIn] = useState(false);
-
-    useEffect(() => {
-        const checkAuth = async () => {
-            try {
-                const res = await fetch(meetingResultURL, { 
-                    method: 'GET',
-                    credentials: 'include' 
-                });
-                if (res.status === 403 || res.status === 401) {
-                    setIsLoggedIn(false);
-                } else {
-                    setIsLoggedIn(true);
-                }
-            } catch (err) {
-                setIsLoggedIn(false);
-            }
-        };
-        checkAuth();
-    }, []);
 
     const navigateToHome = () => nav('/');
 
     const handleLogout = async () => {
-        try {
-            await fetch('http://localhost:3001/auth/signout', {
-                method: 'POST',
-                credentials: 'include'
-            });
-        } catch (err) {
-            console.error("Erreur déconnexion:", err);
-        }
-        setIsLoggedIn(false);
-        nav('/login');
-    };
+    try {
+        await fetch(signoutURL, {
+            method: 'POST',
+            credentials: 'include'
+        });
+        alert("Déconnexion réussie !");
+    } catch (err) {
+        console.error("Erreur lors de la déconnexion :", err);
+    }
+    
+  };
     
     const handleFileChange = (e) => {
         if (e.target.files && e.target.files.length > 0) {
@@ -66,15 +46,13 @@ function Upload() {
         const formData = new FormData();
         formData.append("file", file);
         formData.append("mode", mode);
-        // Le back n'en a plus besoin ici car c'est dans l'URL, mais on peut le laisser
         formData.append("language", language); 
 
         setLoading(true);
 
         try {
-            // CORRECTION ICI : On ajoute /process/fr à l'URL
-            const processUrl = `${meetingBaseURL}/process/${language}`;
             
+            const processUrl = `${meetingBaseURL}/process/${language}`;
             const response = await fetch(processUrl, {
                 method: 'POST',
                 credentials: 'include', 
@@ -82,8 +60,7 @@ function Upload() {
             });
 
             if (response.status === 403 || response.status === 401) {
-                alert("Votre session a expiré. Veuillez vous reconnecter.");
-                nav('/login');
+                alert("Token invalide");
                 return;
             }
 
@@ -141,7 +118,7 @@ function Upload() {
     };
 
     return (
-        <div className="min-h-screen w-screen bg-black text-gray-200 font-sans flex flex-col items-center pt-10 px-4">
+        <div className="min-h-screen w-screen bg-[#09090b] text-gray-200 font-sans flex flex-col items-center pt-10 px-4">
             
             <header className="w-full max-w-2xl flex items-center justify-between mb-6">
                 <div className="flex items-center gap-4">
@@ -156,29 +133,24 @@ function Upload() {
                     </div>
                 </div>
 
-                <div>
-                    {isLoggedIn ? (
-                        <button 
-                            onClick={handleLogout}
-                            className="flex items-center gap-2 px-4 py-2 bg-[#121214] border border-gray-800 hover:border-red-500 hover:text-red-500 text-gray-300 rounded-xl transition-all duration-300 text-sm font-semibold"
-                        >
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-4">
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15m3 0 3-3m0 0-3-3m3 3H9" />
-                            </svg>
-                            <span className="hidden sm:inline">Déconnexion</span>
-                        </button>
-                    ) : (
-                        <button 
-                            onClick={() => nav('/login')}
-                            className="flex items-center gap-2 px-4 py-2 bg-[#121214] border border-gray-800 hover:border-yellow-500 hover:text-yellow-500 text-gray-300 rounded-xl transition-all duration-300 text-sm font-semibold"
-                        >
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-4">
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" />
-                            </svg>
-                            <span className="hidden sm:inline">Connexion</span>
-                        </button>
-                    )}
-                </div>
+                <div className="flex items-center gap-3 justify-end">
+    
+  
+                  <button onClick={() => nav('/login')} className={`flex items-center gap-2 px-4 py-2 bg-[#121214] rounded-xl transition-all duration-300 text-sm font-semibold hover:bg-gray-900`}>
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-4">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" />
+                      </svg>
+                      <span className="hidden sm:inline">Connexion</span>
+                  </button>
+
+            <button onClick={handleLogout} className={`flex items-center gap-2 px-4 py-2 bg-[#121214] border-yellow-500 rounded-xl transition-all duration-300 text-sm font-semibold hover:bg-gray-900`}>
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-4">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15m3 0 3-3m0 0-3-3m3 3H9" />
+                </svg>
+                <span className="hidden sm:inline">Déconnexion</span>
+            </button>
+
+        </div>
             </header>
 
             <div className="w-full max-w-2xl bg-[#09090b] border border-gray-800 rounded-2xl p-8 flex flex-col items-center shadow-lg">
