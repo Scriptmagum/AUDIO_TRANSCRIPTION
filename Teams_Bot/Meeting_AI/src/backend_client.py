@@ -90,7 +90,7 @@ class BackendClient:
 
             # Affichage bien visible pour l'opérateur
             print("\n" + "="*60)
-            print("ACTION REQUISE] NOUVELLE API KEY GÉNÉRÉE 🚨")
+            print("ACTION REQUISE] NOUVELLE API KEY GÉNÉRÉE")
             print("Copie-colle la ligne ci-dessous dans ton fichier .env :")
             print(f"BACKEND_API_KEY={new_key}")
             print("="*60 + "\n")

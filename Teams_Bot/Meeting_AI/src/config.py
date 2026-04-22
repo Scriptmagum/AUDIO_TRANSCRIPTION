@@ -20,8 +20,8 @@ def _require(key: str) -> str:
 
 
 # ── Bot Framework (Azure Bot Registration) ───────────────────────────────────
-APP_ID: str = os.environ.get("MicrosoftAppId", "")
-APP_PASSWORD: str = os.environ.get("MicrosoftAppPassword", "")
+APP_ID: str = _require("MicrosoftAppId")
+APP_PASSWORD: str = _require("MicrosoftAppPassword")
 
 # ── Microsoft Graph / MSAL ────────────────────────────────────────────────────
 # Tenant Azure AD du client (ex : "contoso.onmicrosoft.com" ou GUID)

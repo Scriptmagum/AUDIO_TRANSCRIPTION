@@ -10,6 +10,7 @@ Permissions Application requises dans Azure AD :
 from __future__ import annotations
 
 import logging
+import os
 import re
 from pathlib import Path
 
@@ -27,7 +28,20 @@ _msal_app: msal.ConfidentialClientApplication | None = None
 def _get_msal_app() -> msal.ConfidentialClientApplication:
     global _msal_app
     if _msal_app is None:
-        authority = f"https://login.microsoftonline.com/{config.TENANT_ID}"
+        tenant = config.TENANT_ID
+
+        # Détection précoce des valeurs invalides
+        invalid_tenants = {"", "botframework", "common", "organizations", "consumers"}
+        if tenant.lower() in invalid_tenants or "botframework" in tenant.lower():
+            raise RuntimeError(
+                f"AZURE_TENANT_ID invalide : '{tenant}'.\n"
+                "→ Renseignez le GUID de votre tenant Azure AD "
+                "(Azure Portal → Azure Active Directory → Vue d'ensemble → Tenant ID).\n"
+                "→ Ne pas utiliser 'botframework', 'common' ou laisser vide."
+            )
+
+        authority = f"https://login.microsoftonline.com/{tenant}"
+        logger.info("MSAL : authority = %s | client_id = %s", authority, config.GRAPH_CLIENT_ID)
         _msal_app = msal.ConfidentialClientApplication(
             client_id=config.GRAPH_CLIENT_ID,
             client_credential=config.GRAPH_CLIENT_SECRET,
@@ -40,12 +54,23 @@ async def get_graph_token() -> str:
     """
     Acquiert (ou renouvelle depuis le cache MSAL) un token pour Graph API.
 
+    En mode test (GRAPH_SKIP_AUTH=true dans .env), retourne un token fictif
+    pour éviter les appels Azure AD lors des tests locaux sans tenant réel.
+
     Returns:
         Bearer token (str).
 
     Raises:
         RuntimeError: si l'acquisition échoue.
     """
+    # ── Mode test : bypass de l'authentification Azure AD ─────────────────
+    if os.environ.get("GRAPH_SKIP_AUTH", "").lower() == "true":
+        logger.warning(
+            "GRAPH_SKIP_AUTH=true : token Graph fictif utilisé. "
+            "Le téléchargement SharePoint réel échouera."
+        )
+        return "FAKE_TOKEN_FOR_LOCAL_TESTING"
+
     app = _get_msal_app()
 
     # Essai depuis le cache avant de contacter Azure AD
@@ -55,8 +80,31 @@ async def get_graph_token() -> str:
         result = app.acquire_token_for_client(scopes=config.GRAPH_SCOPES)
 
     if "access_token" not in result:
-        error = result.get("error_description", result.get("error", "inconnu"))
-        raise RuntimeError(f"Impossible d'obtenir un token Graph : {error}")
+        # Message d'erreur enrichi pour les cas courants
+        error_code = result.get("error", "")
+        error_desc = result.get("error_description", "inconnu")
+
+        hint = ""
+        if "AADSTS700016" in error_desc:
+            hint = (
+                "\n\n💡 AADSTS700016 : L'App Registration est introuvable dans votre tenant.\n"
+                "   Vérifiez que :\n"
+                "   1. AZURE_TENANT_ID est bien le GUID de VOTRE tenant (pas 'botframework')\n"
+                "   2. GRAPH_CLIENT_ID correspond à une App Registration dans ce tenant\n"
+                "   3. L'app a bien les permissions 'Files.Read.All' (Application) avec consentement admin"
+            )
+        elif "AADSTS7000215" in error_desc:
+            hint = "\n\n💡 AADSTS7000215 : GRAPH_CLIENT_SECRET invalide ou expiré."
+        elif "unauthorized_client" in error_code:
+            hint = (
+                "\n\n💡 unauthorized_client : Le consentement admin est peut-être manquant.\n"
+                "   Azure Portal → App Registration → Permissions API → "
+                "Accorder le consentement administrateur."
+            )
+
+        raise RuntimeError(
+            f"Impossible d'obtenir un token Graph : {error_desc}{hint}"
+        )
 
     return result["access_token"]
 
