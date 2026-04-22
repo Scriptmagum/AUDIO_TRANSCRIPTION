@@ -1,98 +1,81 @@
+"""
+audio_processor.py — Conversion asynchrone de .mp4 en .mp3 via ffmpeg.
+
+La conversion est entièrement non-bloquante grâce à asyncio.create_subprocess_exec.
+Le fichier .mp3 résultant est optimisé pour la transcription (mono, 16 kHz, 128 kbps).
+"""
+
+from __future__ import annotations
+
 import asyncio
-import aiohttp
-import aiofiles
 import logging
 from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
+# Paramètres de conversion audio (optimisés pour la transcription vocale)
+_FFMPEG_AUDIO_CODEC = "libmp3lame"
+_FFMPEG_BITRATE = "128k"
+_FFMPEG_SAMPLE_RATE = "16000"   # 16 kHz — suffisant pour la parole
+_FFMPEG_CHANNELS = "1"          # mono
 
-async def download_mp4(url: str, token: str, output_path: str) -> None:
+
+async def convert_mp4_to_mp3(mp4_path: Path, mp3_path: Path) -> Path:
     """
-    Télécharge le fichier MP4 depuis Teams.
-    Le token Bearer est requis — Teams refuse les téléchargements non authentifiés.
+    Convertit un fichier .mp4 en .mp3 de façon non-bloquante.
+
+    Args:
+        mp4_path: Chemin vers le fichier vidéo source.
+        mp3_path: Chemin de destination pour le fichier audio.
+
+    Returns:
+        Le chemin `mp3_path` une fois la conversion terminée.
+
+    Raises:
+        RuntimeError: si ffmpeg n'est pas installé ou si la conversion échoue.
+        FileNotFoundError: si `mp4_path` n'existe pas.
     """
-    headers = {"Authorization": f"Bearer {token}"}
+    if not mp4_path.exists():
+        raise FileNotFoundError(f"Fichier source introuvable : {mp4_path}")
 
-    async with aiohttp.ClientSession() as session:
-        async with session.get(url, headers=headers) as response:
-            response.raise_for_status()
-            async with aiofiles.open(output_path, "wb") as f:
-                async for chunk in response.content.iter_chunked(1024 * 64):
-                    await f.write(chunk)
+    mp3_path.parent.mkdir(parents=True, exist_ok=True)
 
-    logger.info(f"MP4 téléchargé : {output_path} ({Path(output_path).stat().st_size} bytes)")
-
-
-async def convert_mp4_to_mp3(mp4_path: str, mp3_path: str, bitrate: str = "128k") -> None:
-    """
-    Convertit un fichier MP4 en MP3 via ffmpeg.
-    ffmpeg doit être installé sur le serveur (apt install ffmpeg ou inclus dans le Dockerfile).
-
-    Options ffmpeg :
-      -vn         : ignore la piste vidéo
-      -acodec mp3 : encode en MP3
-      -ab         : bitrate audio (128k par défaut)
-      -ar 44100   : fréquence d'échantillonnage standard
-    """
     cmd = [
         "ffmpeg",
-        "-i", mp4_path,
-        "-vn",
-        "-acodec", "mp3",
-        "-ab", bitrate,
-        "-ar", "44100",
-        "-y",          # écrase le fichier de sortie si existant
-        mp3_path
+        "-y",                        # Overwrite sans confirmation
+        "-i", str(mp4_path),         # Fichier d'entrée
+        "-vn",                       # Supprime la piste vidéo
+        "-acodec", _FFMPEG_AUDIO_CODEC,
+        "-ab", _FFMPEG_BITRATE,
+        "-ar", _FFMPEG_SAMPLE_RATE,
+        "-ac", _FFMPEG_CHANNELS,
+        str(mp3_path),               # Fichier de sortie
     ]
 
-    process = await asyncio.create_subprocess_exec(
-        *cmd,
-        stdout=asyncio.subprocess.PIPE,
-        stderr=asyncio.subprocess.PIPE
+    logger.info("ffmpeg : démarrage conversion %s → %s", mp4_path.name, mp3_path.name)
+    logger.debug("ffmpeg commande : %s", " ".join(cmd))
+
+    try:
+        proc = await asyncio.create_subprocess_exec(
+            *cmd,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+        )
+        stdout, stderr = await proc.communicate()
+    except FileNotFoundError as exc:
+        raise RuntimeError(
+            "ffmpeg est introuvable. Assurez-vous qu'il est installé et dans le PATH."
+        ) from exc
+
+    if proc.returncode != 0:
+        stderr_text = stderr.decode(errors="replace").strip()
+        logger.error("ffmpeg a échoué (code %d) :\n%s", proc.returncode, stderr_text)
+        raise RuntimeError(
+            f"Conversion ffmpeg échouée (code {proc.returncode}) : {stderr_text[-500:]}"
+        )
+
+    size_mb = mp3_path.stat().st_size / (1024 * 1024)
+    logger.info(
+        "ffmpeg : conversion terminée → %s (%.2f MB)", mp3_path.name, size_mb
     )
-    stdout, stderr = await process.communicate()
-
-    if process.returncode != 0:
-        error_msg = stderr.decode("utf-8", errors="replace")
-        raise RuntimeError(f"ffmpeg a échoué (code {process.returncode}) : {error_msg}")
-
-    logger.info(f"Conversion réussie : {mp3_path} ({Path(mp3_path).stat().st_size} bytes)")
-
-
-async def send_mp3_to_backend(
-    mp3_path: str,
-    filename: str,
-    backend_url: str,
-    meeting_id: str | None = None,
-) -> dict:
-    """
-    Envoie le fichier MP3 au backend via multipart/form-data.
-
-    Le backend recevra :
-      - file     : le fichier MP3 (champ 'file')
-      - filename : le nom du fichier
-      - meeting_id : l'ID de la réunion Teams (optionnel)
-    """
-    async with aiofiles.open(mp3_path, "rb") as f:
-        mp3_bytes = await f.read()
-
-    data = aiohttp.FormData()
-    data.add_field(
-        "file",
-        mp3_bytes,
-        filename=filename,
-        content_type="audio/mpeg"
-    )
-
-    if meeting_id:
-        data.add_field("meeting_id", meeting_id)
-
-    data.add_field("filename", filename)
-
-    async with aiohttp.ClientSession() as session:
-        async with session.post(backend_url, data=data) as response:
-            response.raise_for_status()
-            result = await response.json()
-            logger.info(f"MP3 envoyé au backend. Statut HTTP : {response.status}")
-            return result
+    return mp3_path

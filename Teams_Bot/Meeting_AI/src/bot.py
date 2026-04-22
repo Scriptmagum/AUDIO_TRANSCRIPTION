@@ -1,82 +1,242 @@
-import os
-import tempfile
+"""
+bot.py — Classe principale du bot Teams (Meeting Assistant).
+
+Flux de traitement :
+  1. on_message_activity() détecte un message contenant une URL d'enregistrement.
+  2. Répond IMMÉDIATEMENT avec "Traitement en cours…" (respect du timeout 15s).
+  3. Lance _process_recording() en tâche de fond (asyncio.create_task).
+  4. _process_recording() :
+       a. Télécharge le .mp4 via Graph API.
+       b. Convertit en .mp3 via ffmpeg.
+       c. Envoie au backend de transcription.
+       d. Répond dans le channel via adapter.continue_conversation() avec une Adaptive Card.
+"""
+
+from __future__ import annotations
+
+import asyncio
 import logging
-from botbuilder.core import ActivityHandler, TurnContext
-from botbuilder.schema import Activity, ActivityTypes
-from audio_processor import download_mp4, convert_mp4_to_mp3, send_mp3_to_backend
+import shutil
+import tempfile
+import uuid
+from pathlib import Path
+
+from botbuilder.core import ActivityHandler, TurnContext, CardFactory
+from botbuilder.schema import Activity, ActivityTypes, Attachment
+
+import config
+from audio_processor import convert_mp4_to_mp3
+from backend_client import BackendClient
+from graph_api import download_mp4_from_sharepoint, extract_sharepoint_url_from_activity
 
 logger = logging.getLogger(__name__)
 
-BACKEND_URL = os.environ.get("BACKEND_URL", "https://ton-backend.com/api/audio")
 
+class MeetingAssistantBot(ActivityHandler):
+    """
+    Bot Teams qui intercepte les enregistrements de réunion et les traite
+    de façon asynchrone (téléchargement + transcription + résumé).
+    """
 
-class TeamsRecordingBot(ActivityHandler):
+    def __init__(self, adapter) -> None:
+        """
+        Args:
+            adapter: Instance de BotFrameworkAdapter (injectée depuis app.py)
+                     nécessaire pour continue_conversation().
+        """
+        super().__init__()
+        self._adapter = adapter
 
-    async def on_message_activity(self, turn_context: TurnContext):
-        activity: Activity = turn_context.activity
+    # ── Gestion des messages entrants ─────────────────────────────────────────
 
-        # Vérifie si le message contient des pièces jointes
-        if not activity.attachments:
+    async def on_message_activity(self, turn_context: TurnContext) -> None:
+        """Point d'entrée principal : appelé pour chaque message reçu."""
+        activity = turn_context.activity
+
+        # Tente d'extraire une URL SharePoint/OneDrive vers un .mp4
+        sharepoint_url = extract_sharepoint_url_from_activity(activity)
+
+        if not sharepoint_url:
+            # Message ordinaire — réponse d'aide basique
+            await turn_context.send_activity(
+                "Je suis votre assistant de réunion. "
+                "Partagez l'enregistrement d'une réunion Teams pour obtenir "
+                "une transcription et un résumé automatique."
+            )
             return
 
-        for attachment in activity.attachments:
-            # Filtre uniquement les fichiers MP4 (enregistrements Teams)
-            content_type = attachment.content_type or ""
-            name = attachment.name or ""
+        # ── Sauvegarde de la ConversationReference ────────────────────────
+        conversation_reference = TurnContext.get_conversation_reference(activity)
 
-            is_video = "video" in content_type or name.lower().endswith(".mp4")
-            if not is_video:
-                continue
+        # ── Réponse immédiate (obligatoire < 15 s) ────────────────────────
+        await turn_context.send_activity(
+            "**Enregistrement détecté !** Je traite votre réunion…\n\n"
+            "Cette opération peut prendre plusieurs minutes. "
+            "Je vous enverrai le résumé dès qu'il sera prêt."
+        )
 
-            await turn_context.send_activity("Enregistrement détecté, conversion en MP3 en cours...")
+        # ── Lancement de la tâche de fond ─────────────────────────────────
+        asyncio.create_task(
+            self._process_recording(sharepoint_url, conversation_reference),
+            name=f"process-recording-{uuid.uuid4().hex[:8]}",
+        )
 
+    # ── Tâche de fond ─────────────────────────────────────────────────────────
+
+    async def _process_recording(
+        self,
+        sharepoint_url: str,
+        conversation_reference,
+    ) -> None:
+        """
+        Exécute le pipeline complet en arrière-plan :
+          téléchargement → conversion → transcription → notification.
+
+        Toutes les exceptions sont capturées et remontées à l'utilisateur
+        via continue_conversation().
+        """
+        # Répertoire temporaire isolé pour cette exécution
+        tmp_dir = Path(tempfile.mkdtemp(dir=config.TEMP_DIR, prefix="meeting_"))
+        mp4_path = tmp_dir / "recording.mp4"
+        mp3_path = tmp_dir / "recording.mp3"
+
+        try:
+            # ── Étape 1 : Téléchargement du .mp4 ─────────────────────────
+            logger.info("[BG] Téléchargement de l'enregistrement…")
+            await self._notify(
+                conversation_reference,
+                "Téléchargement de l'enregistrement en cours…",
+            )
+            await download_mp4_from_sharepoint(sharepoint_url, mp4_path)
+
+            # ── Étape 2 : Conversion en .mp3 ──────────────────────────────
+            logger.info("[BG] Conversion audio…")
+            await self._notify(
+                conversation_reference,
+                "Conversion audio en cours…",
+            )
+            await convert_mp4_to_mp3(mp4_path, mp3_path)
+
+            # ── Étape 3 : Envoi au backend de transcription ───────────────
+            logger.info("[BG] Envoi au backend de transcription…")
+            await self._notify(
+                conversation_reference,
+                "Transcription et résumé en cours (quelques minutes)…",
+            )
+            backend = BackendClient.get_instance()
+            result = await backend.upload_audio_to_backend(mp3_path)
+
+            # ── Étape 4 : Envoi de la carte de résultat ───────────────────
+            logger.info("[BG] Traitement terminé. Envoi du résumé.")
+            card = self._build_result_card(
+                summary=result["summary"],
+                pdf_url=result["pdf_url"],
+            )
+            await self._notify_with_card(conversation_reference, card)
+
+        except Exception as exc:
+            logger.exception("[BG] Erreur durant le traitement de l'enregistrement")
+            await self._notify(
+                conversation_reference,
+                f"**Une erreur est survenue durant le traitement :**\n\n`{exc}`\n\n"
+                "Veuillez réessayer ou contacter votre administrateur.",
+            )
+
+        finally:
+            # Nettoyage des fichiers temporaires dans tous les cas
             try:
-                # Récupère le token d'authentification pour télécharger le fichier
-                token = await self._get_auth_token(turn_context)
+                shutil.rmtree(tmp_dir, ignore_errors=True)
+                logger.debug("[BG] Répertoire temporaire supprimé : %s", tmp_dir)
+            except Exception:
+                pass
 
-                with tempfile.TemporaryDirectory() as tmp_dir:
-                    mp4_path = os.path.join(tmp_dir, "recording.mp4")
-                    mp3_path = os.path.join(tmp_dir, "recording.mp3")
+    # ── Helpers de notification ────────────────────────────────────────────────
 
-                    # 1. Télécharge le MP4 depuis Teams
-                    await download_mp4(
-                        url=attachment.content_url,
-                        token=token,
-                        output_path=mp4_path
-                    )
+    async def _notify(self, conversation_reference, text: str) -> None:
+        """Envoie un message texte simple via continue_conversation()."""
+        async def _send(ctx: TurnContext):
+            await ctx.send_activity(Activity(type=ActivityTypes.message, text=text))
 
-                    # 2. Convertit en MP3 via ffmpeg
-                    await convert_mp4_to_mp3(mp4_path, mp3_path)
-
-                    # 3. Envoie le MP3 au backend
-                    filename = name.replace(".mp4", ".mp3")
-                    response = await send_mp3_to_backend(
-                        mp3_path=mp3_path,
-                        filename=filename,
-                        backend_url=BACKEND_URL,
-                        meeting_id=activity.channel_data.get("meeting", {}).get("id") if activity.channel_data else None,
-                    )
-
-                    await turn_context.send_activity(
-                        f"MP3 envoyé avec succès. Réponse backend : {response.get('status', 'ok')}"
-                    )
-
-            except Exception as e:
-                logger.error(f"Erreur traitement enregistrement : {e}", exc_info=True)
-                await turn_context.send_activity(
-                    f"Erreur lors du traitement de l'enregistrement : {str(e)}"
-                )
-
-    async def _get_auth_token(self, turn_context: TurnContext) -> str:
-        """Récupère le token OBO (On-Behalf-Of) pour télécharger les fichiers Teams."""
-        token_response = await turn_context.adapter.get_user_token(
-            turn_context, "teams"
+        await self._adapter.continue_conversation(
+            conversation_reference,
+            _send,
+            config.APP_ID,
         )
-        if token_response:
-            return token_response.token
 
-        # Fallback : utilise le token du connecteur
-        connector_client = await turn_context.adapter.create_connector_client(
-            turn_context.activity.service_url
+    async def _notify_with_card(self, conversation_reference, card: Attachment) -> None:
+        """Envoie une Adaptive Card via continue_conversation()."""
+        async def _send(ctx: TurnContext):
+            reply = Activity(type=ActivityTypes.message)
+            reply.attachments = [card]
+            await ctx.send_activity(reply)
+
+        await self._adapter.continue_conversation(
+            conversation_reference,
+            _send,
+            config.APP_ID,
         )
-        return connector_client.config.credentials.get_access_token()
+
+    # ── Construction de l'Adaptive Card ───────────────────────────────────────
+
+    @staticmethod
+    def _build_result_card(summary: str, pdf_url: str) -> Attachment:
+        """
+        Génère une Adaptive Card Teams affichant :
+          - Le texte du résumé de la réunion.
+          - Un bouton « Télécharger le PDF » pointant vers pdf_url.
+        """
+        # Construit l'URL absolue si pdf_url est un chemin relatif
+        full_pdf_url = (
+            pdf_url
+            if pdf_url.startswith("http")
+            else f"{config.BACKEND_URL}{pdf_url}"
+        )
+
+        # Tronque le résumé si trop long pour l'Adaptive Card (limite ~15 000 chars)
+        display_summary = summary if len(summary) <= 10_000 else summary[:10_000] + "…"
+
+        card_content = {
+            "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+            "type": "AdaptiveCard",
+            "version": "1.4",
+            "body": [
+                {
+                    "type": "TextBlock",
+                    "text": "📋 Résumé de la réunion",
+                    "weight": "Bolder",
+                    "size": "Large",
+                    "color": "Accent",
+                    "wrap": True,
+                },
+                {
+                    "type": "TextBlock",
+                    "text": "Votre réunion a été transcrite et résumée avec succès.",
+                    "size": "Small",
+                    "isSubtle": True,
+                    "wrap": True,
+                },
+                {
+                    "type": "Container",
+                    "style": "emphasis",
+                    "bleed": False,
+                    "items": [
+                        {
+                            "type": "TextBlock",
+                            "text": display_summary,
+                            "wrap": True,
+                            "size": "Default",
+                        }
+                    ],
+                },
+            ],
+            "actions": [
+                {
+                    "type": "Action.OpenUrl",
+                    "title": "Télécharger le compte-rendu PDF",
+                    "url": full_pdf_url,
+                    "style": "positive",
+                }
+            ],
+        }
+
+        return CardFactory.adaptive_card(card_content)

@@ -1,7 +1,16 @@
-dotenv>=0.9.9
-azure-identity>=1.12.0
-microsoft-teams-apps>=2.0.0a8,<3.0.0
+# ── Bot Framework ─────────────────────────────────────────────────────────────
 botbuilder-core==4.16.1
+botbuilder-schema==4.16.1
 botbuilder-integration-aiohttp==4.16.1
+
+# ── Serveur Web ────────────────────────────────────────────────────────────────
 aiohttp==3.9.5
+
+# ── Fichiers asynchrones ───────────────────────────────────────────────────────
 aiofiles==23.2.1
+
+# ── Authentification Microsoft ─────────────────────────────────────────────────
+msal==1.28.0
+
+# ── Configuration ──────────────────────────────────────────────────────────────
+python-dotenv==1.0.1
