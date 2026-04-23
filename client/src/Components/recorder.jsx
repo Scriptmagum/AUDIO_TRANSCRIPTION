@@ -1,0 +1,162 @@
+import React, { useRef, useState } from 'react'
+import { FaCircleStop, FaMicrophone, FaPaperPlane } from 'react-icons/fa6';
+
+function Recorder({ onRecordingComplete }) {
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordedURL, setRecordedURL] = useState('');
+  const [audioBlob, setAudioBlob] = useState(null);
+  const [seconds, setSeconds] = useState(0);
+  const [isUploading, setIsUploading] = useState(false);
+
+  const mediaStream = useRef(null);
+  const mediaRecorder = useRef(null);
+  const chunks = useRef([]);
+  const timerRef = useRef(null); 
+
+  const mimeType = "audio/webm;codecs=opus";
+
+  const startRecording = async() => {
+    setIsRecording(true);
+    setAudioBlob(null);
+    try {
+      setSeconds(0);
+      const stream = await navigator.mediaDevices.getUserMedia({audio: true});
+      mediaStream.current = stream;
+      
+      let options = {};
+      if(MediaRecorder.isTypeSupported(mimeType)){
+        options = { mimeType: mimeType };
+      } else {
+        console.warn(`${mimeType} n'est pas supporté, utilisation du type par défaut.`);
+      }
+
+      mediaRecorder.current = new MediaRecorder(stream, options);
+
+      mediaRecorder.current.ondataavailable = (e) => {
+        if(e.data.size > 0){
+          chunks.current.push(e.data);
+        }
+      };
+
+      mediaRecorder.current.onstop = () => {
+        const blobType = MediaRecorder.isTypeSupported(mimeType) ? mimeType : 'audio/webm';
+        const recordedBlob = new Blob(chunks.current, { type: blobType });
+        const url = URL.createObjectURL(recordedBlob);
+
+        setRecordedURL(url);
+        setAudioBlob(recordedBlob);
+
+        onRecordingComplete(url, recordedBlob);
+        
+        chunks.current = [];
+        clearInterval(timerRef.current);
+      };
+
+      mediaRecorder.current.start();
+
+      timerRef.current = setInterval(() => {
+        setSeconds(prev => prev + 1);
+      }, 1000);
+
+    } catch(err) {
+      console.error("Erreur d'accès au micro:", err);
+      setIsRecording(false);
+    }
+  };
+
+  const stopRecording = () => {
+    setIsRecording(false);
+    
+    clearInterval(timerRef.current);
+
+    if(mediaRecorder.current && mediaRecorder.current.state !== "inactive"){
+      mediaRecorder.current.stop();
+    }
+    if(mediaStream.current){
+      mediaStream.current.getTracks().forEach(track => track.stop());
+    }
+  };
+
+  const uploadAudio = async () => {
+    if(!audioBlob) return;
+
+    setIsUploading(true);
+
+    try {
+    
+    const token = localStorage.getItem('meeting_token');
+
+    if (!token) {
+      alert("Vous n'êtes pas authentifié !");
+      return;
+    }
+
+    const formData = new FormData();
+    
+    formData.append('file', audioBlob, 'enregistrement.webm');
+
+    
+    const response = await fetch('http://localhost:3001/meeting/process', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}` 
+      },
+      body: formData,
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      console.log("Traitement terminé :", data);
+      alert("Audio envoyé et traité avec succès !");
+      
+    } else {
+      const errorData = await response.json();
+      console.error("Erreur backend:", errorData.error);
+    }
+  } catch (err) {
+    console.error("Erreur réseau:", err);
+  } finally {
+    setIsUploading(false);
+  }
+
+  };
+
+  const formatTime = (totalSeconds) => {
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+
+    return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+
+  };
+
+  return (
+    <div className='w-200 h-100 flex flex-col items-center justify-center rounded-lg shadow-lg border-2 border-purple-500'>
+        <h2 className='text-[50px] text-white'>
+            {formatTime(seconds)}
+        </h2>
+
+        {isRecording ? (
+            <button onClick={stopRecording} className='flex items-center justify-center text-[60px] bg-red-500 rounded-full p-4 text-white w-[100px] h-[100px] hover:bg-red-600 transition-colors'>
+                <FaCircleStop />
+            </button>
+        ) : (
+            <button onClick={startRecording} className='flex items-center justify-center text-[60px] bg-blue-600 rounded-full p-4 text-white w-[100px] h-[100px] hover:bg-blue-700 transition-colors'>
+                <FaMicrophone />
+            </button>
+        )}
+        
+        {recordedURL && (
+            <div className="mt-8 bg-transparent p-4 rounded-lg shadow-lg">
+                <audio controls src={recordedURL} />
+                <div className="mt-4 flex justify-center gap-8">
+                  <button className="btn btn-neutral bg-gradient-to-br from-pink-300 to-orange-300 text-black px-4 py-2 rounded">Transcrire</button>
+                  <button className="btn btn-neutral bg-gradient-to-br from-pink-300 to-orange-300 text-black px-4 py-2 rounded">Résumer</button>
+                </div>
+            </div>
+        )}
+    </div>
+  )
+}
+
+export default Recorder;
