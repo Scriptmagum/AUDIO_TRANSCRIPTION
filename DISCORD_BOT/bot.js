@@ -57,7 +57,6 @@ client.once(Events.ClientReady, async () => {
     console.log(`[bot] logged in as ${client.user.tag}`);
 
     try {
-        await authenticate();
         await ensureApiKey();
     } catch (err) {
         console.error('[bot] startup authentication failed:', err.message);
